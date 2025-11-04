@@ -20,8 +20,8 @@ In this case we set value for x 5 and for y 10,
 so we expect that outcom of this program will be 15.
 """
 
-x = 5  #variable x with velu 5
-y = 10 #variable y with velu 10
+x = 5  #variable x with velue 5
+y = 10 #variable y with velue 10
 
 print(x + y) # funktion for show off the resut (expected result is 15)
 
