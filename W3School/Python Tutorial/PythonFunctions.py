@@ -57,14 +57,14 @@ factorial(5)  # 120
 
 # Answer
 
-# -------- Task A — Basic Function & Arguments --------
+print ("-------- Task A — Basic Function & Arguments ---------------")
 
 def GreatingFunc(name, age):
     return f"Hello {name}! You are {age} years old."
 
-# print(GreatingFunc("Roman", 24))
+print(GreatingFunc("Roman", 24))
 
-# --------------- Task B — Using *args ----------------
+print("--------------- Task B — Using *args -----------------------")
 import math
 
 def sum_all(*args):
@@ -72,6 +72,86 @@ def sum_all(*args):
     print("sum_all", args)
     print("The sum is: ", result)
     
-"""sum_all(2,5,3)
-sum_all(2,5)"""
+sum_all(2,5,3)
+sum_all(2,5)
 
+print("---------------- Task C — Using **kwargs -------------------")
+
+def describe_person(**kwargs):
+    for key, value in kwargs.items():
+        print(key, ":", value)
+
+describe_person(name="Sam", hobby="chess", country="Japan")
+
+print("------------------- Task D — Scope -------------------------")
+
+global counter
+counter = 0
+print(counter)
+
+def increase():
+    counter = 1
+    print(counter)
+    return counter
+
+increase()
+
+print("----------------- Task E — Decorators -----------------------")
+
+def debug(func):
+    def wrapper(*args):
+        print(f"Calling: {func.__name__}{args}")
+        return func(*args)
+    return wrapper
+
+
+@debug
+def multiply(a, b):
+    result = a * b
+    print(f"Result: {result}")
+    return result
+
+multiply(3, 5)
+
+print("---------------- Task F — Lambda Functions -------------------")
+
+square = lambda x: x * x
+
+print("The square of 8 is", square(8))
+
+print("------------------Task G — Recursion -------------------------")
+
+def factorial(n):
+    if n == 0 or n == 1:   
+        return 1
+    return n * factorial(n - 1)
+
+print(factorial(5))
+
+"""
+Terminal output: 
+PS C:\Users\trade> & C:/Users/trade/AppData/Local/Programs/Python/Python314/python.exe 
+"c:/Users/trade/Desktop/PythonPractice/PythonPractice/W3School/Python Tutorial/PythonFunctions.py"
+
+-------- Task A — Basic Function & Arguments ---------------
+Hello Roman! You are 24 years old.
+--------------- Task B — Using *args -----------------------
+sum_all (2, 5, 3)
+The sum is:  10
+sum_all (2, 5)
+The sum is:  7
+---------------- Task C — Using **kwargs -------------------
+name : Sam
+hobby : chess
+country : Japan
+------------------- Task D — Scope -------------------------
+0
+1
+----------------- Task E — Decorators -----------------------
+Calling: multiply(3, 5)
+Result: 15
+---------------- Task F — Lambda Functions -------------------
+The square of 8 is 64
+------------------Task G — Recursion -------------------------
+120
+"""
