@@ -1,0 +1,24 @@
+{
+    "Alice": {
+        "email": "alice@example.com",
+        "phone": "12345",
+        "tags": [
+            "friend"
+        ]
+    },
+    "Bob": {
+        "email": "bob@example.com",
+        "phone": "67890",
+        "tags": [
+            "work"
+        ]
+    },
+    "Roman": {
+        "email": "pankiv.roma",
+        "phone": "9567",
+        "tags": [
+            "my_contact",
+            "me"
+        ]
+    }
+}
