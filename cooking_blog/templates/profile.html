@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Мої рецепти</h2>
+<a href="/recipe/new">➕ Додати рецепт</a>
+
+{% for recipe in recipes %}
+    <div class="card">
+        <h3>{{ recipe.title }}</h3>
+        <a href="/recipe/{{ recipe.id }}">Переглянути</a>
+        <a href="/recipe/delete/{{ recipe.id }}">❌ Видалити</a>
+    </div>
+{% endfor %}
+{% endblock %}
