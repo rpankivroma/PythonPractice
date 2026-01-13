@@ -1,98 +1,238 @@
-from flask import Flask, render_template, redirect, url_for, request
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask import Flask, request, jsonify, session, render_template, send_from_directory
+from flask_cors import CORS
+import json
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from models import db, User, Recipe, Comment
+app = Flask(__name__, 
+            static_folder='static',
+            template_folder='templates')
+app.secret_key = 'super-secret-key-for-session'
+CORS(app, supports_credentials=True)
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
+DB_FILE = 'users.json'
+RECIPES_DB_FILE = 'recipes.json'
 
-db.init_app(app)
+def load_db():
+    if not os.path.exists(DB_FILE):
+        return []
+    try:
+        with open(DB_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return []
 
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+def save_db(data):
+    with open(DB_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def load_recipes_db():
+    if not os.path.exists(RECIPES_DB_FILE):
+        return []
+    try:
+        with open(RECIPES_DB_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return []
 
-@app.before_first_request
-def create_tables():
-    db.create_all()
+def save_recipes_db(data):
+    with open(RECIPES_DB_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
 
-# Головна сторінка
-@app.route("/")
+@app.route('/')
 def index():
-    recipes = Recipe.query.order_by(Recipe.created_at.desc()).all()
-    return render_template("index.html", recipes=recipes)
+    return render_template('index.html')
 
-# Реєстрація
-@app.route("/register", methods=["GET", "POST"])
+@app.route('/<page>.html')
+def render_page(page):
+    return render_template(f'{page}.html')
+
+@app.route('/api/register', methods=['POST'])
 def register():
-    if request.method == "POST":
-        password = generate_password_hash(request.form["password"])
-        user = User(username=request.form["username"], password=password)
-        db.session.add(user)
-        db.session.commit()
-        return redirect(url_for("login"))
-    return render_template("register.html")
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not username or not email or not password:
+        return jsonify({"error": "Missing fields"}), 400
+    
+    users = load_db()
+    if any(u['username'] == username or u['email'] == email for u in users):
+        return jsonify({"error": "User already exists"}), 400
+    
+    new_user = {
+        "username": username,
+        "email": email,
+        "password": generate_password_hash(password)
+    }
+    users.append(new_user)
+    save_db(users)
+    return jsonify({"message": "User registered"}), 201
 
-# Логін
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/api/login', methods=['POST'])
 def login():
-    if request.method == "POST":
-        user = User.query.filter_by(username=request.form["username"]).first()
-        if user and check_password_hash(user.password, request.form["password"]):
-            login_user(user)
-            return redirect(url_for("profile"))
-    return render_template("login.html")
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    username = data.get('username')
+    password = data.get('password')
+    
+    users = load_db()
+    user = next((u for u in users if u['username'] == username), None)
+    
+    if user and check_password_hash(user['password'], password):
+        session['user'] = user['username']
+        session.permanent = True
+        return jsonify({"message": "Logged in", "username": user['username']}), 200
+    
+    return jsonify({"error": "Invalid credentials"}), 401
 
-# Профіль
-@app.route("/profile")
-@login_required
-def profile():
-    return render_template("profile.html", recipes=current_user.recipes)
+@app.route('/api/logout', methods=['POST'])
+def logout_route():
+    session.pop('user', None)
+    return jsonify({"message": "Logged out"}), 200
 
-# Створення рецепту
-@app.route("/recipe/new", methods=["GET", "POST"])
-@login_required
-def new_recipe():
-    if request.method == "POST":
-        recipe = Recipe(
-            title=request.form["title"],
-            content=request.form["content"],
-            author=current_user
-        )
-        db.session.add(recipe)
-        db.session.commit()
-        return redirect(url_for("profile"))
-    return render_template("recipe_form.html")
+@app.route('/api/me', methods=['GET'])
+def get_me():
+    if 'user' in session:
+        users = load_db()
+        user = next((u for u in users if u['username'] == session['user']), None)
+        if user:
+            return jsonify({
+                "username": user['username'],
+                "email": user['email']
+            }), 200
+    return jsonify({"error": "Not authenticated"}), 401
 
-# Деталі рецепту + коментарі
-@app.route("/recipe/<int:id>", methods=["GET", "POST"])
-def recipe_detail(id):
-    recipe = Recipe.query.get_or_404(id)
-    if request.method == "POST":
-        comment = Comment(text=request.form["comment"], recipe=recipe)
-        db.session.add(comment)
-        db.session.commit()
-    return render_template("recipe_detail.html", recipe=recipe)
+@app.route('/api/me', methods=['PATCH'])
+def update_me():
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    users = load_db()
+    user_idx = next((i for i, u in enumerate(users) if u['username'] == session['user']), None)
+    
+    if user_idx is None:
+        return jsonify({"error": "User not found"}), 404
+        
+    user = users[user_idx]
+    old_username = user['username']
+    
+    # Update username
+    new_username = data.get('username')
+    if new_username and new_username != old_username:
+        if any(u['username'] == new_username for u in users):
+            return jsonify({"error": "Username already taken"}), 400
+        user['username'] = new_username
+        session['user'] = new_username
+        
+        # Update author in recipes
+        recipes = load_recipes_db()
+        for r in recipes:
+            if r['author'] == old_username:
+                r['author'] = new_username
+        save_recipes_db(recipes)
 
-# Видалення рецепту
-@app.route("/recipe/delete/<int:id>")
-@login_required
-def delete_recipe(id):
-    recipe = Recipe.query.get_or_404(id)
-    if recipe.author == current_user:
-        db.session.delete(recipe)
-        db.session.commit()
-    return redirect(url_for("profile"))
+    # Update password
+    new_password = data.get('password')
+    if new_password:
+        user['password'] = generate_password_hash(new_password)
+        
+    save_db(users)
+    return jsonify({"message": "Profile updated", "username": user['username']}), 200
 
-@app.route("/logout")
-def logout():
-    logout_user()
-    return redirect(url_for("index"))
+@app.route('/api/recipes', methods=['GET'])
+def get_recipes():
+    recipes = load_recipes_db()
+    username = request.args.get('username')
+    if username:
+        user_recipes = [r for r in recipes if r['author'] == username]
+        return jsonify(user_recipes)
+    return jsonify(recipes)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
+def get_recipe(recipe_id):
+    recipes = load_recipes_db()
+    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    if recipe:
+        return jsonify(recipe)
+    return jsonify({"error": "Recipe not found"}), 404
+
+@app.route('/api/recipes', methods=['POST'])
+def create_recipe():
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    if not data or 'title' not in data:
+        return jsonify({"error": "Invalid recipe data"}), 400
+
+    recipes = load_recipes_db()
+    new_id = 1
+    if recipes:
+        new_id = max(r['id'] for r in recipes) + 1
+
+    new_recipe = {
+        "id": new_id,
+        "title": data.get('title'),
+        "description": data.get('description', ''),
+        "ingredients": data.get('ingredients', []),
+        "steps": data.get('steps', []),
+        "cookingTime": data.get('cookingTime', 0),
+        "difficulty": data.get('difficulty', 'Medium'),
+        "imageUrl": data.get('imageUrl', ''),
+        "author": session['user']
+    }
+    recipes.append(new_recipe)
+    save_recipes_db(recipes)
+    return jsonify(new_recipe), 201
+
+@app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
+def update_recipe(recipe_id):
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    recipes = load_recipes_db()
+    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    
+    if not recipe:
+        return jsonify({"error": "Recipe not found"}), 404
+    
+    if recipe['author'] != session['user']:
+        return jsonify({"error": "You can only edit your own recipes"}), 403
+        
+    recipe.update({
+        "title": data.get('title', recipe['title']),
+        "description": data.get('description', recipe['description']),
+        "ingredients": data.get('ingredients', recipe['ingredients']),
+        "steps": data.get('steps', recipe['steps']),
+        "cookingTime": data.get('cookingTime', recipe['cookingTime']),
+        "difficulty": data.get('difficulty', recipe['difficulty']),
+        "imageUrl": data.get('imageUrl', recipe['imageUrl'])
+    })
+    save_recipes_db(recipes)
+    return jsonify(recipe)
+
+@app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
+def delete_recipe(recipe_id):
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    recipes = load_recipes_db()
+    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    
+    if not recipe:
+        return jsonify({"error": "Recipe not found"}), 404
+        
+    if recipe['author'] != session['user']:
+        return jsonify({"error": "You can only delete your own recipes"}), 403
+        
+    recipes = [r for r in recipes if r['id'] != recipe_id]
+    save_recipes_db(recipes)
+    return jsonify({"message": "Recipe deleted"}), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
