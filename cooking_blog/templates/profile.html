@@ -1,13 +1,322 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Мої рецепти</h2>
-<a href="/recipe/new">➕ Додати рецепт</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Gourmet Share</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
 
-{% for recipe in recipes %}
-    <div class="card">
-        <h3>{{ recipe.title }}</h3>
-        <a href="/recipe/{{ recipe.id }}">Переглянути</a>
-        <a href="/recipe/delete/{{ recipe.id }}">❌ Видалити</a>
+<nav>
+    <a href="index.html" class="logo">GourmetShare</a>
+    <div id="nav-links" class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="profile.html">Profile</a>
+        <a href="#" onclick="openModal('loginModal')" id="login-link">Login</a>
+        <a href="#" onclick="openModal('registerModal')" id="register-link">Register</a>
+        <a href="#" onclick="logout()" id="logout-link" style="display: none;">Logout</a>
     </div>
-{% endfor %}
-{% endblock %}
+</nav>
+
+<div class="container" id="profile-content" style="display: none;">
+    <div class="profile-header">
+        <div id="user-avatar" class="avatar">??</div>
+        <div>
+            <h1 id="user-username">User</h1>
+            <p id="user-email"></p>
+            <button class="btn btn-sm" onclick="openModal('editProfileModal')" style="margin-top: 0.5rem; font-size: 0.8rem; padding: 0.25rem 0.75rem;">Edit Profile</button>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="section-title" style="margin-bottom: 0;">My Recipes</h2>
+        <button class="btn" onclick="openModal('newRecipeModal')">Create New Recipe</button>
+    </div>
+
+    <div id="recipe-grid" class="grid">
+        <div class="card add-recipe-card" style="display: flex; align-items: center; justify-content: center; border-style: dashed; min-height: 300px; cursor: pointer; visibility: visible !important;" onclick="openModal('newRecipeModal')">
+            <div style="text-align: center; color: var(--muted-foreground);">
+                <div style="font-size: 2rem; margin-bottom: 1rem;">+</div>
+                <p>Add New Recipe</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Recipe Modal -->
+<div id="newRecipeModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('newRecipeModal')">&times;</span>
+        <h2 id="modal-title">Create New Recipe</h2>
+        <p style="color: var(--muted-foreground); margin-bottom: 2rem;">Share your culinary masterpiece with the world</p>
+        <form id="recipe-form">
+            <div class="form-group">
+                <label>Recipe Title</label>
+                <input type="text" id="title" placeholder="e.g. Grandma's Apple Pie" required>
+            </div>
+            <div class="form-group">
+                <label>Short Description</label>
+                <input type="text" id="description" placeholder="A brief hook for your recipe" required>
+            </div>
+            <div class="form-group">
+                <label>Ingredients (one per line)</label>
+                <textarea id="ingredients" placeholder="2 cups flour&#10;1 cup sugar..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Steps</label>
+                <textarea id="steps" placeholder="1. Preheat oven..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Image URL</label>
+                <input type="text" id="imageUrl" placeholder="https://images.unsplash.com/..." required>
+            </div>
+            <div class="form-group">
+                <label>Cooking Time (minutes)</label>
+                <input type="number" id="cookingTime" placeholder="e.g. 45" required>
+            </div>
+            <div class="form-group">
+                <label>Difficulty</label>
+                <select id="difficulty">
+                    <option value="Easy">Easy</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Publish Recipe</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('editProfileModal')">&times;</span>
+        <h2>Edit Profile</h2>
+        <form id="edit-profile-form">
+            <div class="form-group">
+                <label>New Username</label>
+                <input type="text" id="edit-username" placeholder="Enter new username">
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="edit-password" placeholder="Enter new password (optional)">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('loginModal')">&times;</span>
+        <h2>Welcome Back</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="login-username" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Login</button>
+        </form>
+    </div>
+</div>
+
+<!-- Register Modal -->
+<div id="registerModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('registerModal')">&times;</span>
+        <h2>Join Community</h2>
+        <form id="register-form">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="reg-username" placeholder="Choose a username" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="reg-email" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-password" placeholder="Create a password" required>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Create Account</button>
+        </form>
+    </div>
+</div>
+
+<script src="static/js/auth.js"></script>
+<script>
+    function openModal(id) {
+        document.getElementById(id).style.display = "block";
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+        if (id === 'newRecipeModal') {
+            currentEditingId = null;
+            document.getElementById('recipe-form').reset();
+            document.getElementById('modal-title').textContent = 'Create New Recipe';
+        }
+    }
+    window.onclick = function(event) {
+        if (event.target.className === 'modal') {
+            event.target.style.display = "none";
+        }
+    }
+
+    async function loadRecipes() {
+        try {
+            const user = await checkAuth();
+            if (!user) return;
+            
+            const response = await fetch(`${API_URL}/recipes?username=${encodeURIComponent(user.username)}`);
+            const recipes = await response.json();
+            
+            const grid = document.getElementById('recipe-grid');
+            if (!grid) return;
+            
+            const addCard = grid.querySelector('.add-recipe-card');
+            grid.innerHTML = '';
+            
+            recipes.forEach(recipe => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
+                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
+                        <div class="card-content">
+                            <h3>${recipe.title}</h3>
+                            <p>${recipe.description}</p>
+                        </div>
+                    </div>
+                    <div class="card-content" style="padding-top: 0;">
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn btn-sm" onclick="editRecipe(${recipe.id})" style="flex: 1; height: 2rem; font-size: 0.8rem;">Edit</button>
+                            <button class="btn btn-sm" onclick="deleteRecipe(${recipe.id})" style="flex: 1; background: #ef4444; height: 2rem; font-size: 0.8rem;">Delete</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            if (addCard) grid.appendChild(addCard);
+        } catch (error) {
+            console.error('Error loading recipes:', error);
+        }
+    }
+
+    let currentEditingId = null;
+
+    async function editRecipe(id) {
+        try {
+            const recipe = await apiRequest(`/recipes/${id}`);
+            if (recipe && !recipe.error) {
+                currentEditingId = id;
+                document.getElementById('title').value = recipe.title;
+                document.getElementById('description').value = recipe.description;
+                document.getElementById('ingredients').value = recipe.ingredients.join('\n');
+                document.getElementById('steps').value = recipe.steps.join('\n');
+                document.getElementById('imageUrl').value = recipe.imageUrl;
+                document.getElementById('cookingTime').value = recipe.cookingTime || '';
+                document.getElementById('difficulty').value = recipe.difficulty || 'Medium';
+                
+                document.getElementById('modal-title').textContent = 'Edit Recipe';
+                openModal('newRecipeModal');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function deleteRecipe(id) {
+        if (confirm('Are you sure you want to delete this recipe?')) {
+            const res = await apiRequest(`/recipes/${id}`, 'DELETE');
+            if (res && !res.error) {
+                loadRecipes();
+            } else if (res && res.error) {
+                alert(res.error);
+            }
+        }
+    }
+
+    const recipeForm = document.getElementById('recipe-form');
+    if (recipeForm) {
+        recipeForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const recipeData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                ingredients: document.getElementById('ingredients').value.split('\n').filter(i => i.trim()),
+                steps: document.getElementById('steps').value.split('\n').filter(s => s.trim()),
+                imageUrl: document.getElementById('imageUrl').value,
+                cookingTime: parseInt(document.getElementById('cookingTime').value) || 0,
+                difficulty: document.getElementById('difficulty').value
+            };
+
+            let res;
+            if (currentEditingId) {
+                res = await apiRequest(`/recipes/${currentEditingId}`, 'PUT', recipeData);
+            } else {
+                res = await apiRequest('/recipes', 'POST', recipeData);
+            }
+
+            if (res && !res.error) {
+                closeModal('newRecipeModal');
+                loadRecipes();
+            } else if (res && res.error) {
+                alert(res.error);
+            }
+        };
+    }
+
+    async function initProfile() {
+        const user = await checkAuth();
+        if (!user) {
+            openModal('loginModal');
+        } else {
+            document.getElementById('profile-content').style.display = 'block';
+            document.getElementById('user-username').textContent = user.username;
+            document.getElementById('user-email').textContent = user.email;
+            document.getElementById('user-avatar').textContent = user.username.substring(0, 2).toUpperCase();
+            
+            // Pre-fill edit profile form
+            const editUser = document.getElementById('edit-username');
+            if (editUser) editUser.value = user.username;
+            
+            loadRecipes();
+        }
+    }
+
+    const editProfileForm = document.getElementById('edit-profile-form');
+    if (editProfileForm) {
+        editProfileForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const newUsername = document.getElementById('edit-username').value;
+            const newPassword = document.getElementById('edit-password').value;
+            
+            const data = {};
+            if (newUsername) data.username = newUsername;
+            if (newPassword) data.password = newPassword;
+            
+            const res = await apiRequest('/me', 'PATCH', data);
+            
+            if (res && !res.error) {
+                alert('Profile updated successfully!');
+                closeModal('editProfileModal');
+                window.location.reload();
+            } else if (res && res.error) {
+                alert(res.error);
+            }
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', initProfile);
+</script>
+
+</body>
+</html>
