@@ -46,8 +46,7 @@ A full-stack culinary platform where home cooks and professional chefs can share
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/gourmet-share.git
-   cd gourmet-share
+   git clone https://github.com/rpankivroma/PythonPractice/tree/3a9dbcb57759e7f16d4c3fb531867100b2baeaf5/cooking_blog
    ```
 
 2. **Install Dependencies**
