@@ -1,0 +1,24 @@
+[
+    {
+        "id": 1,
+        "title": "Classic Carbonara",
+        "description": "The authentic Roman pasta dish made with eggs, cheese, and guanciale.",
+        "ingredients": [
+            "200g Spaghetti",
+            "100g Guanciale",
+            "2 Eggs",
+            "50g Pecorino Romano",
+            "Black Pepper"
+        ],
+        "steps": [
+            "Boil pasta",
+            "Fry guanciale",
+            "Mix eggs and cheese",
+            "Combine all"
+        ],
+        "cookingTime": 20,
+        "difficulty": "Easy",
+        "imageUrl": "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=500",
+        "author": "Jane Doe"
+    }
+]
