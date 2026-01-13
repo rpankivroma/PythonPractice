@@ -1,0 +1,17 @@
+[
+    {
+        "username": "PankivRoman",
+        "email": "pankiv.roma@gmail.com",
+        "password": "scrypt:32768:8:1$ffEC8COlQqMzxKNF$6b0a6c8e9be803d0141c566769d8e8967cf4f618f5aef6c5838b34012fe47f0691904c17f50d87a7297130b438d829177f00390ea65d08495ce61d9bfb22e5c7"
+    },
+    {
+        "username": "ivnj",
+        "email": "pankiv.dfg@gmail.com",
+        "password": "scrypt:32768:8:1$LouSowhEM5JwYaBx$04396a728b5f1328469b01d16cf2be2d3d2c7fb07bd25c266301706723986403d3a7f20dc66a0e820648ba60b2c4fcaff37e2db56b16a07fa4f713baf1f61a7f"
+    },
+    {
+        "username": "NikitaHor",
+        "email": "nita@huhi.com",
+        "password": "scrypt:32768:8:1$LTfD9ABsLsZVfbDQ$8f94b3d4505fb067be776e48022a59f39768cc0fb65f626df317f8afe349d566a82a302513f87b76411cc18993dca09fea7e845bb3aeb07d8dd7978757130024"
+    }
+]
