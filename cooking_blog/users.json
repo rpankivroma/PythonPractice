@@ -13,5 +13,15 @@
         "username": "NikitaHor",
         "email": "nita@huhi.com",
         "password": "scrypt:32768:8:1$LTfD9ABsLsZVfbDQ$8f94b3d4505fb067be776e48022a59f39768cc0fb65f626df317f8afe349d566a82a302513f87b76411cc18993dca09fea7e845bb3aeb07d8dd7978757130024"
+    },
+    {
+        "username": "Jane Doe",
+        "email": "ddnita@huhi.com",
+        "password": "scrypt:32768:8:1$LTfD9ABsLsZVfbDQ$8f94b3d4505fb067be776e48022a59f39768cc0fb65f626df317f8afe349d566a82a302513f87b76411cc18993dca09fea7e845bb3aeb07d8dd7978757130024"
+    },
+    {
+        "username": "Criss",
+        "email": "Criss@gmail.com",
+        "password": "scrypt:32768:8:1$sRiyFMiuAsgn5yK7$434be94512715e0ebbeba445ae829dcc29794f7c2e6cfd5b47fef02d3cb028ec930c04c16900259efefcd0cb9a2a031513860d1e10085a5724ea7d4e031cdc43"
     }
 ]
