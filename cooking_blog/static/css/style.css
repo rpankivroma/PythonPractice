@@ -212,6 +212,33 @@ nav {
     font-family: inherit;
 }
 
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrapper input {
+    padding-right: 3rem;
+}
+
+.show-password-btn {
+    position: absolute;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.25rem;
+    user-select: none;
+}
+
+.show-password-btn:hover {
+    color: var(--primary);
+}
+
 .form-group textarea {
     min-height: 100px;
     resize: vertical;
