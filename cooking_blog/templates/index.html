@@ -24,6 +24,14 @@
     <div class="hero">
         <h1>Culinary Inspiration</h1>
         <p>Discover recipes created by home cooks and professional chefs from around the world.</p>
+        <div class="chapter-filters" style="margin-top: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <button class="btn btn-outline" onclick="filterRecipes('')">All</button>
+            <button class="btn btn-outline" onclick="filterRecipes('Meals')">Meals</button>
+            <button class="btn btn-outline" onclick="filterRecipes('Breakfasts')">Breakfasts</button>
+            <button class="btn btn-outline" onclick="filterRecipes('Dinners')">Dinners</button>
+            <button class="btn btn-outline" onclick="filterRecipes('Desserts')">Desserts</button>
+            <button class="btn btn-outline" onclick="filterRecipes('Drinks')">Drinks</button>
+        </div>
     </div>
     
     <h2 class="section-title">Latest Recipes</h2>
@@ -88,13 +96,22 @@
         }
     }
 
-    async function loadRecipes() {
+    async function loadRecipes(chapter = '') {
         try {
-            const response = await fetch(`${API_URL}/recipes`);
+            let url = `${API_URL}/recipes`;
+            if (chapter) {
+                url += `?chapter=${encodeURIComponent(chapter)}`;
+            }
+            const response = await fetch(url);
             const recipes = await response.json();
             const grid = document.getElementById('recipe-grid');
             grid.innerHTML = '';
             
+            if (recipes.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: var(--muted-foreground);">No recipes found in this chapter.</p>';
+                return;
+            }
+
             recipes.forEach(recipe => {
                 const card = document.createElement('a');
                 // Ensure link points to the correct static file served by Flask
@@ -103,6 +120,10 @@
                 card.innerHTML = `
                     <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
                     <div class="card-content">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); font-weight: 600;">${recipe.chapter || 'Meals'}</span>
+                            <span style="font-size: 0.8rem; color: var(--muted-foreground);">${recipe.difficulty}</span>
+                        </div>
                         <h3>${recipe.title}</h3>
                         <p>${recipe.description}</p>
                     </div>
@@ -114,9 +135,25 @@
         }
     }
 
+    function filterRecipes(chapter) {
+        // Update active state of buttons
+        const buttons = document.querySelectorAll('.chapter-filters button');
+        buttons.forEach(btn => {
+            if (btn.textContent === (chapter || 'All')) {
+                btn.style.backgroundColor = 'var(--primary)';
+                btn.style.color = 'white';
+            } else {
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = 'var(--primary)';
+                btn.style.border = '1px solid var(--primary)';
+            }
+        });
+        loadRecipes(chapter);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         checkAuth();
-        loadRecipes();
+        filterRecipes(''); // Load all recipes initially and set "All" as active
     });
 </script>
 
