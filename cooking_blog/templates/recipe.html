@@ -87,6 +87,7 @@
             
             container.innerHTML = `
                 <div class="recipe-header">
+                    <div style="text-transform: uppercase; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.05em;">${recipe.chapter || 'Meals'}</div>
                     <h1>${recipe.title}</h1>
                     <div class="recipe-meta">
                         <span>By <strong>${recipe.author}</strong></span>
