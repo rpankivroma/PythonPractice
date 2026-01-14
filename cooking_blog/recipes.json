@@ -18,7 +18,30 @@
         ],
         "cookingTime": 20,
         "difficulty": "Easy",
+        "chapter": "Meals",
         "imageUrl": "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=500",
         "author": "Jane Doe"
+    },
+    {
+        "id": 2,
+        "title": "\u0456\u0432\u0430\u0456\u0432\u0430\u0456\u0432\u0430",
+        "description": "\u0456\u0432\u0430\u0432\u0456\u0430\u0432\u0456\u0430",
+        "ingredients": [
+            "\u0456\u0432\u0430\u0432\u0456\u0430\u0432\u0430\u0432",
+            "\u0456\u0432\u0430\u0432\u0456\u0430\u0432\u0456\u0430\u0456",
+            "\u0456\u0432\u0430\u0432\u0456\u0430\u0432\u0456\u0430",
+            "\u0432\u0456\u0430\u0456\u0432\u0430\u0432\u0456"
+        ],
+        "steps": [
+            "\u0430\u0432\u0456\u0430\u0432\u0456\u0430\u0432\u0456\u0430\u0456\u0432",
+            "\u0432\u0456\u0430\u0432\u0456\u0430\u0456\u0432\u0430\u0456\u0432",
+            "\u0456\u0432\u0430\u0432\u0456\u0430\u0432\u0456\u0430",
+            "\u0456\u0430\u0432\u0456\u0432\u0430\u0432\u0456\u0430\u0456\u0432"
+        ],
+        "cookingTime": 34,
+        "difficulty": "Medium",
+        "chapter": "Desserts",
+        "imageUrl": "https://klopotenko.com/wp-content/uploads/2022/01/pasta-karbonara_sitewebukr-1000x600.jpg?v=1720550151",
+        "author": "NikitaHor"
     }
 ]
