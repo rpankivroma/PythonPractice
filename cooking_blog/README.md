@@ -7,8 +7,9 @@ A full-stack culinary platform where home cooks and professional chefs can share
 - **User Authentication**: Secure registration and login system with password hashing.
 - **Recipe Management**: Create, read, update, and delete (CRUD) your own recipes.
 - **Recipe Discovery**: Browse recipes shared by the community with filtering by author.
+- **Chapter Organization**: Organize recipes into chapters: Meals, Breakfasts, Dinners, Desserts, and Drinks.
 - **Detailed Profiles**: Manage your personal profile, update username/password, and view your contributed recipes.
-- **Rich Recipe Editor**: Add ingredients, cooking steps, difficulty levels, and cooking times.
+- **Rich Recipe Editor**: Add ingredients, cooking steps, difficulty levels, chapters, and cooking times.
 - **Responsive Design**: Modern, mobile-friendly interface with light/dark mode readiness.
 
 ## 🛠️ Tech Stack
@@ -46,7 +47,8 @@ A full-stack culinary platform where home cooks and professional chefs can share
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/rpankivroma/PythonPractice/tree/3a9dbcb57759e7f16d4c3fb531867100b2baeaf5/cooking_blog
+   git clone https://github.com/yourusername/gourmet-share.git
+   cd gourmet-share
    ```
 
 2. **Install Dependencies**
@@ -69,7 +71,7 @@ A full-stack culinary platform where home cooks and professional chefs can share
 | `POST` | `/api/login` | Authenticate user |
 | `GET` | `/api/me` | Get current user info |
 | `PATCH` | `/api/me` | Update profile (username/password) |
-| `GET` | `/api/recipes` | Get all recipes (or filter by `?username=`) |
+| `GET` | `/api/recipes` | Get all recipes (filter by `?username=` or `?chapter=`) |
 | `POST` | `/api/recipes` | Create a new recipe |
 | `GET` | `/api/recipes/<id>` | Get specific recipe details |
 | `PUT` | `/api/recipes/<id>` | Update a recipe (Author only) |
