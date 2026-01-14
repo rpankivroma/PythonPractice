@@ -147,10 +147,16 @@ def update_me():
 def get_recipes():
     recipes = load_recipes_db()
     username = request.args.get('username')
+    chapter = request.args.get('chapter')
+    
+    filtered_recipes = recipes
     if username:
-        user_recipes = [r for r in recipes if r['author'] == username]
-        return jsonify(user_recipes)
-    return jsonify(recipes)
+        filtered_recipes = [r for r in filtered_recipes if r['author'] == username]
+    
+    if chapter:
+        filtered_recipes = [r for r in filtered_recipes if r.get('chapter', '').lower() == chapter.lower()]
+        
+    return jsonify(filtered_recipes)
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
 def get_recipe(recipe_id):
@@ -182,6 +188,7 @@ def create_recipe():
         "steps": data.get('steps', []),
         "cookingTime": data.get('cookingTime', 0),
         "difficulty": data.get('difficulty', 'Medium'),
+        "chapter": data.get('chapter', 'Meals'),
         "imageUrl": data.get('imageUrl', ''),
         "author": session['user']
     }
@@ -211,6 +218,7 @@ def update_recipe(recipe_id):
         "steps": data.get('steps', recipe['steps']),
         "cookingTime": data.get('cookingTime', recipe['cookingTime']),
         "difficulty": data.get('difficulty', recipe['difficulty']),
+        "chapter": data.get('chapter', recipe.get('chapter', 'Meals')),
         "imageUrl": data.get('imageUrl', recipe['imageUrl'])
     })
     save_recipes_db(recipes)
