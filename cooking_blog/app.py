@@ -88,6 +88,25 @@ def login():
     
     return jsonify({"error": "Invalid credentials"}), 401
 
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    email = data.get('email')
+    new_password = data.get('password')
+    
+    if not email or not new_password:
+        return jsonify({"error": "Missing email or password"}), 400
+        
+    users = load_db()
+    user_idx = next((i for i, u in enumerate(users) if u['email'] == email), None)
+    
+    if user_idx is None:
+        return jsonify({"error": "No user found with this email"}), 404
+        
+    users[user_idx]['password'] = generate_password_hash(new_password)
+    save_db(users)
+    return jsonify({"message": "Password updated successfully"}), 200
+
 @app.route('/api/logout', methods=['POST'])
 def logout_route():
     session.pop('user', None)
