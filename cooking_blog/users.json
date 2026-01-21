@@ -2,7 +2,7 @@
     {
         "username": "PankivRoman",
         "email": "pankiv.roma@gmail.com",
-        "password": "scrypt:32768:8:1$ffEC8COlQqMzxKNF$6b0a6c8e9be803d0141c566769d8e8967cf4f618f5aef6c5838b34012fe47f0691904c17f50d87a7297130b438d829177f00390ea65d08495ce61d9bfb22e5c7"
+        "password": "scrypt:32768:8:1$M7R8b35nabH69E9A$534ebfaec73f094b9ac7275872c044bab3365324995ef8cdd224cfda2dfec9db429d4e8e1313b61b7483e6f5472c265ccf7b8a9b0c584b679f968995f4b26303"
     },
     {
         "username": "ivnj",
@@ -23,5 +23,20 @@
         "username": "Criss",
         "email": "Criss@gmail.com",
         "password": "scrypt:32768:8:1$sRiyFMiuAsgn5yK7$434be94512715e0ebbeba445ae829dcc29794f7c2e6cfd5b47fef02d3cb028ec930c04c16900259efefcd0cb9a2a031513860d1e10085a5724ea7d4e031cdc43"
+    },
+    {
+        "username": "Nelly",
+        "email": "nelpankiv.roma@gmail.com",
+        "password": "scrypt:32768:8:1$j1jOzwQfg3ZcrX63$05c149c781073e41bc90428a16d4227670b456a964bde98d136fd220c1d7ae3cb5418a44c0f287c0b44eb19038e3db1bbf3d6ed9c0451ba68e6e465455bc4dc9"
+    },
+    {
+        "username": "CrissAnders",
+        "email": "CrisAnd@gmail.com",
+        "password": "scrypt:32768:8:1$hJHgJJTNOnlsICfU$693588057f2ddfa89b146d2f03b0f2d9d1ab59cab27cc366fc148638b616b34046b66c261aeb84c9a23c03cdb88ffe3076d5d774c7932a0c6be1a53f00af456e"
+    },
+    {
+        "username": "\u0421A",
+        "email": "CA@g.com",
+        "password": "scrypt:32768:8:1$XOd547da73ZV8GFq$d10031aaeb23676445bcbfc3772a111b15bdcdafd58b0ce973dc0363ab29cc2a5150b8f2611a13e1ad6b58b8d7603e58d33e4916ed35f574f3f7a53d5fe2b5b3"
     }
 ]
