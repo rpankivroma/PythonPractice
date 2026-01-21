@@ -58,6 +58,32 @@
                 </div>
             </div>
             <button type="submit" class="btn" style="width: 100%;">Login</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.85rem;">
+                <a href="#" onclick="closeModal('loginModal'); openModal('forgotPasswordModal')" style="color: var(--primary); text-decoration: none;">Forgot Password?</a>
+            </p>
+        </form>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+        <h2>Reset Password</h2>
+        <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.9rem;">Enter your email and new password to reset.</p>
+        <form id="forgot-password-form">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="forgot-email" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="forgot-password" placeholder="Create a new password" required>
+                    <button type="button" class="show-password-btn" onclick="togglePassword('forgot-password')">Show</button>
+                </div>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Reset Password</button>
         </form>
     </div>
 </div>
@@ -173,6 +199,26 @@
     document.addEventListener('DOMContentLoaded', () => {
         checkAuth();
         filterRecipes(''); // Load all recipes initially and set "All" as active
+        
+        // Setup forgot password form
+        const forgotForm = document.getElementById('forgot-password-form');
+        if (forgotForm) {
+            forgotForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const res = await apiRequest('/reset-password', 'POST', {
+                    email: document.getElementById('forgot-email').value,
+                    password: document.getElementById('forgot-password').value
+                });
+                
+                if (res && !res.error) {
+                    alert('Password reset successful! Please login with your new password.');
+                    closeModal('forgotPasswordModal');
+                    openModal('loginModal');
+                } else if (res && res.error) {
+                    alert(res.error);
+                }
+            };
+        }
     });
 </script>
 
