@@ -1,7 +1,7 @@
-from flask import Flask, request, jsonify, session, render_template, send_from_directory
+from flask import Flask, request, jsonify, session, render_template
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 import json
-import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, 
@@ -10,34 +10,34 @@ app = Flask(__name__,
 app.secret_key = 'super-secret-key-for-session'
 CORS(app, supports_credentials=True)
 
-DB_FILE = 'users.json'
-RECIPES_DB_FILE = 'recipes.json'
+# MySQL Configuration using SQLAlchemy with PyMySQL driver
+# Format: mysql+pymysql://username:password@localhost/db_name
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/CookingBlog'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-def load_db():
-    if not os.path.exists(DB_FILE):
-        return []
-    try:
-        with open(DB_FILE, 'r') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return []
+db = SQLAlchemy(app)
 
-def save_db(data):
-    with open(DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+# Models matching your SQL structure
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(255), unique=True, nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
 
-def load_recipes_db():
-    if not os.path.exists(RECIPES_DB_FILE):
-        return []
-    try:
-        with open(RECIPES_DB_FILE, 'r') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return []
-
-def save_recipes_db(data):
-    with open(RECIPES_DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+class Recipe(db.Model):
+    __tablename__ = 'recipes'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    ingredients = db.Column(db.JSON)
+    steps = db.Column(db.JSON)
+    cooking_time = db.Column(db.Integer)
+    difficulty = db.Column(db.String(50))
+    chapter = db.Column(db.String(100))
+    image_url = db.Column(db.Text)
+    author = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 @app.route('/')
 def index():
@@ -57,17 +57,16 @@ def register():
     if not username or not email or not password:
         return jsonify({"error": "Missing fields"}), 400
     
-    users = load_db()
-    if any(u['username'] == username or u['email'] == email for u in users):
+    if User.query.filter((User.username == username) | (User.email == email)).first():
         return jsonify({"error": "User already exists"}), 400
     
-    new_user = {
-        "username": username,
-        "email": email,
-        "password": generate_password_hash(password)
-    }
-    users.append(new_user)
-    save_db(users)
+    new_user = User(
+        username=username,
+        email=email,
+        password=generate_password_hash(password)
+    )
+    db.session.add(new_user)
+    db.session.commit()
     return jsonify({"message": "User registered"}), 201
 
 @app.route('/api/login', methods=['POST'])
@@ -78,13 +77,12 @@ def login():
     username = data.get('username')
     password = data.get('password')
     
-    users = load_db()
-    user = next((u for u in users if u['username'] == username), None)
+    user = User.query.filter_by(username=username).first()
     
-    if user and check_password_hash(user['password'], password):
-        session['user'] = user['username']
+    if user and check_password_hash(user.password, password):
+        session['user'] = user.username
         session.permanent = True
-        return jsonify({"message": "Logged in", "username": user['username']}), 200
+        return jsonify({"message": "Logged in", "username": user.username}), 200
     
     return jsonify({"error": "Invalid credentials"}), 401
 
@@ -92,19 +90,17 @@ def login():
 def reset_password():
     data = request.get_json()
     email = data.get('email')
-    new_password = data.get('password')
+    password = data.get('password')
     
-    if not email or not new_password:
+    if not email or not password:
         return jsonify({"error": "Missing email or password"}), 400
         
-    users = load_db()
-    user_idx = next((i for i, u in enumerate(users) if u['email'] == email), None)
-    
-    if user_idx is None:
+    user = User.query.filter_by(email=email).first()
+    if not user:
         return jsonify({"error": "No user found with this email"}), 404
         
-    users[user_idx]['password'] = generate_password_hash(new_password)
-    save_db(users)
+    user.password = generate_password_hash(password)
+    db.session.commit()
     return jsonify({"message": "Password updated successfully"}), 200
 
 @app.route('/api/logout', methods=['POST'])
@@ -115,12 +111,11 @@ def logout_route():
 @app.route('/api/me', methods=['GET'])
 def get_me():
     if 'user' in session:
-        users = load_db()
-        user = next((u for u in users if u['username'] == session['user']), None)
+        user = User.query.filter_by(username=session['user']).first()
         if user:
             return jsonify({
-                "username": user['username'],
-                "email": user['email']
+                "username": user.username,
+                "email": user.email
             }), 200
     return jsonify({"error": "Not authenticated"}), 401
 
@@ -130,59 +125,70 @@ def update_me():
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.get_json()
-    users = load_db()
-    user_idx = next((i for i, u in enumerate(users) if u['username'] == session['user']), None)
+    old_username = session['user']
+    user = User.query.filter_by(username=old_username).first()
     
-    if user_idx is None:
+    if not user:
         return jsonify({"error": "User not found"}), 404
-        
-    user = users[user_idx]
-    old_username = user['username']
-    
-    # Update username
+
     new_username = data.get('username')
     if new_username and new_username != old_username:
-        if any(u['username'] == new_username for u in users):
+        if User.query.filter_by(username=new_username).first():
             return jsonify({"error": "Username already taken"}), 400
-        user['username'] = new_username
-        session['user'] = new_username
         
-        # Update author in recipes
-        recipes = load_recipes_db()
-        for r in recipes:
-            if r['author'] == old_username:
-                r['author'] = new_username
-        save_recipes_db(recipes)
+        Recipe.query.filter_by(author=old_username).update({Recipe.author: new_username})
+        user.username = new_username
+        session['user'] = new_username
 
-    # Update password
     new_password = data.get('password')
     if new_password:
-        user['password'] = generate_password_hash(new_password)
+        user.password = generate_password_hash(new_password)
         
-    save_db(users)
-    return jsonify({"message": "Profile updated", "username": user['username']}), 200
+    db.session.commit()
+    return jsonify({"message": "Profile updated", "username": session['user']}), 200
 
 @app.route('/api/recipes', methods=['GET'])
 def get_recipes():
-    recipes = load_recipes_db()
     username = request.args.get('username')
     chapter = request.args.get('chapter')
     
-    filtered_recipes = recipes
+    query = Recipe.query
     if username:
-        filtered_recipes = [r for r in filtered_recipes if r['author'] == username]
-    
+        query = query.filter_by(author=username)
     if chapter:
-        filtered_recipes = [r for r in filtered_recipes if r.get('chapter', '').lower() == chapter.lower()]
+        query = query.filter(Recipe.chapter.ilike(chapter))
         
-    return jsonify(filtered_recipes)
+    recipes = query.all()
+    
+    return jsonify([{
+        "id": r.id,
+        "title": r.title,
+        "description": r.description,
+        "ingredients": r.ingredients,
+        "steps": r.steps,
+        "cookingTime": r.cooking_time,
+        "difficulty": r.difficulty,
+        "chapter": r.chapter,
+        "imageUrl": r.image_url,
+        "author": r.author
+    } for r in recipes])
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
 def get_recipe(recipe_id):
-    recipes = load_recipes_db()
-    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    recipe = Recipe.query.get(recipe_id)
     if recipe:
-        return jsonify(recipe)
+        return jsonify({
+            "id": recipe.id,
+            "title": recipe.title,
+            "description": recipe.description,
+            "ingredients": recipe.ingredients,
+            "steps": recipe.steps,
+            "cookingTime": recipe.cooking_time,
+            "difficulty": recipe.difficulty,
+            "chapter": recipe.chapter,
+            "imageUrl": recipe.image_url,
+            "author": recipe.author
+        })
     return jsonify({"error": "Recipe not found"}), 404
 
 @app.route('/api/recipes', methods=['POST'])
@@ -194,26 +200,21 @@ def create_recipe():
     if not data or 'title' not in data:
         return jsonify({"error": "Invalid recipe data"}), 400
 
-    recipes = load_recipes_db()
-    new_id = 1
-    if recipes:
-        new_id = max(r['id'] for r in recipes) + 1
-
-    new_recipe = {
-        "id": new_id,
-        "title": data.get('title'),
-        "description": data.get('description', ''),
-        "ingredients": data.get('ingredients', []),
-        "steps": data.get('steps', []),
-        "cookingTime": data.get('cookingTime', 0),
-        "difficulty": data.get('difficulty', 'Medium'),
-        "chapter": data.get('chapter', 'Meals'),
-        "imageUrl": data.get('imageUrl', ''),
-        "author": session['user']
-    }
-    recipes.append(new_recipe)
-    save_recipes_db(recipes)
-    return jsonify(new_recipe), 201
+    new_recipe = Recipe(
+        title=data.get('title'),
+        description=data.get('description', ''),
+        ingredients=data.get('ingredients', []),
+        steps=data.get('steps', []),
+        cooking_time=data.get('cookingTime', 0),
+        difficulty=data.get('difficulty', 'Medium'),
+        chapter=data.get('chapter', 'Meals'),
+        image_url=data.get('imageUrl', ''),
+        author=session['user']
+    )
+    db.session.add(new_recipe)
+    db.session.commit()
+    
+    return jsonify({"id": new_recipe.id, "message": "Recipe created"}), 201
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
 def update_recipe(recipe_id):
@@ -221,44 +222,41 @@ def update_recipe(recipe_id):
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.get_json()
-    recipes = load_recipes_db()
-    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    recipe = Recipe.query.get(recipe_id)
     
     if not recipe:
         return jsonify({"error": "Recipe not found"}), 404
     
-    if recipe['author'] != session['user']:
+    if recipe.author != session['user']:
         return jsonify({"error": "You can only edit your own recipes"}), 403
         
-    recipe.update({
-        "title": data.get('title', recipe['title']),
-        "description": data.get('description', recipe['description']),
-        "ingredients": data.get('ingredients', recipe['ingredients']),
-        "steps": data.get('steps', recipe['steps']),
-        "cookingTime": data.get('cookingTime', recipe['cookingTime']),
-        "difficulty": data.get('difficulty', recipe['difficulty']),
-        "chapter": data.get('chapter', recipe.get('chapter', 'Meals')),
-        "imageUrl": data.get('imageUrl', recipe['imageUrl'])
-    })
-    save_recipes_db(recipes)
-    return jsonify(recipe)
+    recipe.title = data.get('title', recipe.title)
+    recipe.description = data.get('description', recipe.description)
+    recipe.ingredients = data.get('ingredients', recipe.ingredients)
+    recipe.steps = data.get('steps', recipe.steps)
+    recipe.cooking_time = data.get('cookingTime', recipe.cooking_time)
+    recipe.difficulty = data.get('difficulty', recipe.difficulty)
+    recipe.chapter = data.get('chapter', recipe.chapter)
+    recipe.image_url = data.get('imageUrl', recipe.image_url)
+
+    db.session.commit()
+    return jsonify({"message": "Recipe updated"})
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
 def delete_recipe(recipe_id):
     if 'user' not in session:
         return jsonify({"error": "Unauthorized"}), 401
         
-    recipes = load_recipes_db()
-    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    recipe = Recipe.query.get(recipe_id)
     
     if not recipe:
         return jsonify({"error": "Recipe not found"}), 404
         
-    if recipe['author'] != session['user']:
+    if recipe.author != session['user']:
         return jsonify({"error": "You can only delete your own recipes"}), 403
         
-    recipes = [r for r in recipes if r['id'] != recipe_id]
-    save_recipes_db(recipes)
+    db.session.delete(recipe)
+    db.session.commit()
     return jsonify({"message": "Recipe deleted"}), 200
 
 if __name__ == '__main__':
