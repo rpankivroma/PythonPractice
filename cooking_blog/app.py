@@ -24,6 +24,9 @@ class User(db.Model):
     username = db.Column(db.String(255), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    bank_name = db.Column(db.String(255), nullable=True)
+    card_number = db.Column(db.String(255), nullable=True)
+    card_holder_name = db.Column(db.String(255), nullable=True)
 
 class Recipe(db.Model):
     __tablename__ = 'recipes'
@@ -38,6 +41,8 @@ class Recipe(db.Model):
     image_url = db.Column(db.Text)
     author = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    for_sale = db.Column(db.Boolean, default=False)
+    price = db.Column(db.Float, nullable=True)
 
 @app.route('/')
 def index():
@@ -115,7 +120,10 @@ def get_me():
         if user:
             return jsonify({
                 "username": user.username,
-                "email": user.email
+                "email": user.email,
+                "bankName": user.bank_name,
+                "cardNumber": user.card_number,
+                "cardHolderName": user.card_holder_name
             }), 200
     return jsonify({"error": "Not authenticated"}), 401
 
@@ -143,6 +151,13 @@ def update_me():
     new_password = data.get('password')
     if new_password:
         user.password = generate_password_hash(new_password)
+    
+    if 'bankName' in data:
+        user.bank_name = data.get('bankName')
+    if 'cardNumber' in data:
+        user.card_number = data.get('cardNumber')
+    if 'cardHolderName' in data:
+        user.card_holder_name = data.get('cardHolderName')
         
     db.session.commit()
     return jsonify({"message": "Profile updated", "username": session['user']}), 200
@@ -170,7 +185,9 @@ def get_recipes():
         "difficulty": r.difficulty,
         "chapter": r.chapter,
         "imageUrl": r.image_url,
-        "author": r.author
+        "author": r.author,
+        "forSale": r.for_sale,
+        "price": r.price
     } for r in recipes])
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
@@ -187,9 +204,36 @@ def get_recipe(recipe_id):
             "difficulty": recipe.difficulty,
             "chapter": recipe.chapter,
             "imageUrl": recipe.image_url,
-            "author": recipe.author
+            "author": recipe.author,
+            "forSale": recipe.for_sale,
+            "price": recipe.price
         })
     return jsonify({"error": "Recipe not found"}), 404
+
+@app.route('/api/recipes/<int:recipe_id>/author-bank', methods=['GET'])
+def get_recipe_author_bank(recipe_id):
+    if 'user' not in session:
+        return jsonify({"error": "Please log in to view payment details"}), 401
+    
+    recipe = Recipe.query.get(recipe_id)
+    if not recipe:
+        return jsonify({"error": "Recipe not found"}), 404
+    
+    if not recipe.for_sale:
+        return jsonify({"error": "This recipe is not for sale"}), 400
+    
+    author = User.query.filter_by(username=recipe.author).first()
+    if not author:
+        return jsonify({"error": "Author not found"}), 404
+    
+    return jsonify({
+        "recipeTitle": recipe.title,
+        "price": recipe.price,
+        "authorName": author.username,
+        "bankName": author.bank_name,
+        "cardNumber": author.card_number,
+        "cardHolderName": author.card_holder_name
+    })
 
 @app.route('/api/recipes', methods=['POST'])
 def create_recipe():
@@ -209,7 +253,9 @@ def create_recipe():
         difficulty=data.get('difficulty', 'Medium'),
         chapter=data.get('chapter', 'Meals'),
         image_url=data.get('imageUrl', ''),
-        author=session['user']
+        author=session['user'],
+        for_sale=data.get('forSale', False),
+        price=data.get('price') if data.get('forSale') else None
     )
     db.session.add(new_recipe)
     db.session.commit()
@@ -239,6 +285,9 @@ def update_recipe(recipe_id):
     recipe.chapter = data.get('chapter', recipe.chapter)
     recipe.image_url = data.get('imageUrl', recipe.image_url)
 
+    if 'forSale' in data:
+        recipe.for_sale = data.get('forSale', False)
+        recipe.price = data.get('price') if data.get('forSale') else None
     db.session.commit()
     return jsonify({"message": "Recipe updated"})
 
