@@ -162,6 +162,7 @@
                 // Ensure link points to the correct static file served by Flask
                 card.href = `recipe.html?id=${recipe.id}`;
                 card.className = 'card';
+                const priceDisplay = recipe.forSale && recipe.price ? `<span style="font-size: 1rem; font-weight: 700; color: var(--primary);">$${recipe.price.toFixed(2)}</span>` : '';
                 card.innerHTML = `
                     <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
                     <div class="card-content">
@@ -171,6 +172,7 @@
                         </div>
                         <h3>${recipe.title}</h3>
                         <p>${recipe.description}</p>
+                        ${priceDisplay ? `<div style="margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">${priceDisplay}<span style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">For Sale</span></div>` : ''}
                     </div>
                 `;
                 grid.appendChild(card);
