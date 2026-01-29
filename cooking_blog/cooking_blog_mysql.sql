@@ -27,6 +27,19 @@ CREATE TABLE IF NOT EXISTS users (
   card_holder_name VARCHAR(255)
 );
 
+CREATE TABLE IF NOT EXISTS deals (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipes_id INT NOT NULL,
+  buyer_id INT NOT NULL,
+  author_id INT NOT NULL,
+  price DECIMAL(10,2),
+  status ENUM('created', 'payment_sent', 'completed', 'canceled', 'disputed') DEFAULT 'created',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (recipes_id) REFERENCES recipes(id),
+  FOREIGN KEY (buyer_id) REFERENCES users(id),
+  FOREIGN KEY (author_id) REFERENCES users(id)
+);
+
 INSERT INTO recipes (title, description, ingredients, steps, cooking_time, difficulty, chapter, image_url, author) VALUES
 ('Limoncello mojito', 'Refresh a classic mojito with a splash of zesty limoncello. Serve this refreshing drink in tall glasses and garnish with the remaining mint leaves to serve', '["1 lemon","juiced","1 tbsp golden caster sugar","small handful of mint","leaves picked","100ml white rum","100ml limoncello","ice","300ml soda water"]', '["step 1","Put the lemon juice, sugar and half the mint leaves in a cocktail shaker. Bash with a cocktail muddler or the end of a rolling pin until the sugar has dissolved.","step 2","Pour the rum and limoncello into the shaker and add a handful of ice. Cover with the lid and shake until the outside of","the shaker feels cold.","step 3","Fill two tall glasses with ice, then strain in the cocktail and top up with the soda water. Garnish with the remaining mint leaves to serve."]', 10, 'Easy', 'Drinks', 'https://images.immediate.co.uk/production/volatile/sites/30/2023/03/Limoncello-mojito-787046e.jpg?quality=90&webp=true&resize=700,636', 'СA');
 
