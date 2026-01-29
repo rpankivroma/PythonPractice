@@ -30,6 +30,26 @@
         </div>
     </div>
 
+    <!-- Bank Details Section -->
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
+        <h2 class="section-title" style="margin-bottom: 1.5rem;">Author Bank Details</h2>
+        <form id="bank-details-form">
+            <div class="form-group">
+                <label>Bank Name</label>
+                <input type="text" id="bank-name" placeholder="e.g. Chase, Bank of America">
+            </div>
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" id="card-number" placeholder="XXXX XXXX XXXX XXXX">
+            </div>
+            <div class="form-group">
+                <label>Card Holder Name</label>
+                <input type="text" id="card-holder-name" placeholder="Name as it appears on card">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Save Bank Details</button>
+        </form>
+    </div>
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 class="section-title" style="margin-bottom: 0;">My Recipes</h2>
         <button class="btn" onclick="openModal('newRecipeModal')">Create New Recipe</button>
@@ -93,6 +113,16 @@
                     <option value="Desserts">Desserts</option>
                     <option value="Drinks">Drinks</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="forSale" onchange="togglePriceField()">
+                    <span>For Sale</span>
+                </label>
+            </div>
+            <div class="form-group" id="price-group" style="display: none;">
+                <label>Price ($)</label>
+                <input type="number" id="price" placeholder="e.g. 4.99" step="0.01" min="0">
             </div>
             <button type="submit" class="btn" style="width: 100%;">Publish Recipe</button>
         </form>
@@ -180,6 +210,9 @@
             currentEditingId = null;
             document.getElementById('recipe-form').reset();
             document.getElementById('modal-title').textContent = 'Create New Recipe';
+            document.getElementById('forSale').checked = false;
+            document.getElementById('price-group').style.display = 'none';
+            document.getElementById('price').required = false;
         }
     }
 
@@ -192,6 +225,20 @@
         } else {
             input.type = "password";
             btn.textContent = "Show";
+        }
+    }
+
+    function togglePriceField() {
+        const forSaleCheckbox = document.getElementById('forSale');
+        const priceGroup = document.getElementById('price-group');
+        const priceInput = document.getElementById('price');
+        if (forSaleCheckbox.checked) {
+            priceGroup.style.display = 'block';
+            priceInput.required = true;
+        } else {
+            priceGroup.style.display = 'none';
+            priceInput.required = false;
+            priceInput.value = '';
         }
     }
 
@@ -257,9 +304,12 @@
                 document.getElementById('cookingTime').value = recipe.cookingTime || '';
                 document.getElementById('difficulty').value = recipe.difficulty || 'Medium';
                 document.getElementById('chapter').value = recipe.chapter || 'Meals';
-                
                 document.getElementById('modal-title').textContent = 'Edit Recipe';
                 openModal('newRecipeModal');
+                // Set for sale checkbox and price
+                document.getElementById('forSale').checked = recipe.forSale || false;
+                document.getElementById('price').value = recipe.price || '';
+                togglePriceField();
             }
         } catch (e) {
             console.error(e);
@@ -281,6 +331,7 @@
     if (recipeForm) {
         recipeForm.onsubmit = async (e) => {
             e.preventDefault();
+            const forSale = document.getElementById('forSale').checked;
             const recipeData = {
                 title: document.getElementById('title').value,
                 description: document.getElementById('description').value,
@@ -289,7 +340,9 @@
                 imageUrl: document.getElementById('imageUrl').value,
                 cookingTime: parseInt(document.getElementById('cookingTime').value) || 0,
                 difficulty: document.getElementById('difficulty').value,
-                chapter: document.getElementById('chapter').value
+                chapter: document.getElementById('chapter').value,
+                forSale: forSale,
+                price: forSale ? parseFloat(document.getElementById('price').value) : null
             };
 
             let res;
@@ -322,8 +375,34 @@
             const editUser = document.getElementById('edit-username');
             if (editUser) editUser.value = user.username;
             
+            // Pre-fill bank details form
+            document.getElementById('bank-name').value = user.bankName || '';
+            document.getElementById('card-number').value = user.cardNumber || '';
+            document.getElementById('card-holder-name').value = user.cardHolderName || '';
+            
             loadRecipes();
         }
+    }
+
+    // Bank Details Form Handler
+    const bankDetailsForm = document.getElementById('bank-details-form');
+    if (bankDetailsForm) {
+        bankDetailsForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                bankName: document.getElementById('bank-name').value,
+                cardNumber: document.getElementById('card-number').value,
+                cardHolderName: document.getElementById('card-holder-name').value
+            };
+            
+            const res = await apiRequest('/me', 'PATCH', data);
+            
+            if (res && !res.error) {
+                alert('Bank details saved successfully!');
+            } else if (res && res.error) {
+                alert(res.error);
+            }
+        };
     }
 
     const editProfileForm = document.getElementById('edit-profile-form');
