@@ -102,6 +102,34 @@
                 </div>
             </div>
             <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--muted-foreground);">Please transfer the amount to the author's bank account to complete your purchase.</p>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button class="btn" style="flex: 1;" onclick="confirmSentMoney()">I sent the money</button>
+                <button class="btn" style="flex: 1; background: var(--secondary); color: var(--foreground);" onclick="cancelDeal()">Cancel deal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('confirmationModal')">&times;</span>
+        <h2>Wait for confirmation!</h2>
+        <p style="margin-top: 1rem; color: var(--muted-foreground);">We've already informed author about your transaction. Please wait confirmation by author. But if your transaction was rejected by bank, cancel deal and try again.</p>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+            <button class="btn" style="flex: 1;" onclick="closeModal('confirmationModal')">Ok</button>
+            <button class="btn" style="flex: 1; background: var(--secondary); color: var(--foreground);" onclick="cancelDeal()">Cancel deal</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Success Modal -->
+<div id="cancelSuccessModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('cancelSuccessModal')">&times;</span>
+        <h2 style="text-align: center;">Your deal was successfully canceled!</h2>
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <button class="btn" style="width: 100%;" onclick="closeModal('cancelSuccessModal')">Ok</button>
         </div>
     </div>
 </div>
@@ -113,6 +141,17 @@
     }
     function closeModal(id) {
         document.getElementById(id).style.display = "none";
+    }
+
+    function confirmSentMoney() {
+        closeModal('purchaseModal');
+        openModal('confirmationModal');
+    }
+
+    function cancelDeal() {
+        closeModal('purchaseModal');
+        closeModal('confirmationModal');
+        openModal('cancelSuccessModal');
     }
 
     function togglePassword(id) {
