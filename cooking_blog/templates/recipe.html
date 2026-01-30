@@ -136,6 +136,8 @@
 
 <script src="static/js/auth.js"></script>
 <script>
+    let currentDealId = null;
+
     function openModal(id) {
         document.getElementById(id).style.display = "block";
     }
@@ -143,12 +145,18 @@
         document.getElementById(id).style.display = "none";
     }
 
-    function confirmSentMoney() {
+    async function confirmSentMoney() {
+        if (currentDealId) {
+            await apiRequest(`/deals/${currentDealId}`, 'PATCH', { status: 'payment_sent' });
+        }
         closeModal('purchaseModal');
         openModal('confirmationModal');
     }
 
-    function cancelDeal() {
+    async function cancelDeal() {
+        if (currentDealId) {
+            await apiRequest(`/deals/${currentDealId}`, 'PATCH', { status: 'canceled' });
+        }
         closeModal('purchaseModal');
         closeModal('confirmationModal');
         openModal('cancelSuccessModal');
@@ -246,7 +254,14 @@
             document.getElementById('purchase-card-number').textContent = data.cardNumber || 'Not provided';
             document.getElementById('purchase-card-holder').textContent = data.cardHolderName || 'Not provided';
             
-            openModal('purchaseModal');
+            // Create deal
+            const dealResponse = await apiRequest('/deals', 'POST', { recipe_id: recipeId });
+            if (dealResponse && dealResponse.id) {
+                currentDealId = dealResponse.id;
+                openModal('purchaseModal');
+            } else {
+                alert('Failed to initiate purchase');
+            }
         } catch (error) {
             console.error('Error fetching purchase details:', error);
             alert('Error loading purchase details. Please try again.');
