@@ -63,6 +63,34 @@
             </div>
         </div>
     </div>
+
+    <!-- Deals Section -->
+    <div style="margin-top: 3rem;">
+        <h2 class="section-title">My Deals</h2>
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <button class="btn btn-sm" id="btn-buy-deals" onclick="switchDealsTab('buy')">Buy</button>
+            <button class="btn btn-sm variant-ghost" id="btn-sell-deals" onclick="switchDealsTab('sell')">Sell</button>
+        </div>
+
+        <div id="deals-container" style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--muted); text-align: left;">
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Recipe</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Price</th>
+                        <th id="th-other-party" style="padding: 1rem; border-bottom: 1px solid var(--border);">Author</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Date</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Status</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="deals-tbody">
+                    <!-- Deals will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- New Recipe Modal -->
@@ -284,8 +312,100 @@
             });
             
             if (addCard) grid.appendChild(addCard);
+
+            // Load Deals
+            loadDeals();
         } catch (error) {
             console.error('Error loading recipes:', error);
+        }
+    }
+
+    let currentDealsTab = 'buy';
+    let userDeals = { buy: [], sell: [] };
+
+    async function switchDealsTab(tab) {
+        currentDealsTab = tab;
+        document.getElementById('btn-buy-deals').className = tab === 'buy' ? 'btn btn-sm' : 'btn btn-sm variant-ghost';
+        document.getElementById('btn-sell-deals').className = tab === 'sell' ? 'btn btn-sm' : 'btn btn-sm variant-ghost';
+        document.getElementById('th-other-party').textContent = tab === 'buy' ? 'Author' : 'Buyer';
+        renderDeals();
+    }
+
+    async function loadDeals() {
+        try {
+            const res = await apiRequest('/deals', 'GET');
+            if (res && !res.error) {
+                userDeals = res;
+                renderDeals();
+            }
+        } catch (e) {
+            console.error('Error loading deals:', e);
+        }
+    }
+
+    function renderDeals() {
+        const tbody = document.getElementById('deals-tbody');
+        if (!tbody) return;
+        
+        const deals = userDeals[currentDealsTab] || [];
+        tbody.innerHTML = deals.length ? '' : '<tr><td colspan="6" style="padding: 2rem; text-align: center; color: var(--muted-foreground);">No deals found</td></tr>';
+        
+        deals.forEach(deal => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border)';
+            
+            let actions = '';
+            if (currentDealsTab === 'sell') {
+                if (deal.status === 'payment_sent') {
+                    actions = `
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'completed')" style="height: 1.75rem; font-size: 0.75rem;">Complete</button>
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'disputed')" style="background: #f59e0b; height: 1.75rem; font-size: 0.75rem;">Dispute</button>
+                        </div>
+                    `;
+                } else if (deal.status === 'disputed') {
+                    actions = `
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'completed')" style="height: 1.75rem; font-size: 0.75rem;">Complete</button>
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'disputed')" style="background: #f59e0b; height: 1.75rem; font-size: 0.75rem;">Dispute</button>
+                        </div>
+                    `;
+                }   
+            } else {
+                if (deal.status === 'created') {
+                    actions = `
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'payment_sent')" style="height: 1.75rem; font-size: 0.75rem;">I sent money</button>
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
+                        </div>
+                    `;
+                } else {
+                    actions = `
+                        <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
+                    `;
+                }
+            }
+
+            tr.innerHTML = `
+                <td style="padding: 1rem;">${deal.recipeTitle}</td>
+                <td style="padding: 1rem;">$${deal.price.toFixed(2)}</td>
+                <td style="padding: 1rem;">${deal.otherPartyName}</td>
+                <td style="padding: 1rem;">${deal.createdAt}</td>
+                <td style="padding: 1rem;"><span style="text-transform: capitalize; background: var(--muted); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${deal.status.replace('_', ' ')}</span></td>
+                <td style="padding: 1rem;">${actions}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function updateDealStatus(id, status) {
+        if (confirm(`Are you sure you want to change this deal status to ${status}?`)) {
+            const res = await apiRequest(`/deals/${id}`, 'PATCH', { status });
+            if (res && !res.error) {
+                loadDeals();
+            } else if (res && res.error) {
+                alert(res.error);
+            }
         }
     }
 
