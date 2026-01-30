@@ -29,13 +29,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS deals (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  recipes_id INT NOT NULL,
+  recipe_id INT NOT NULL,
   buyer_id INT NOT NULL,
   author_id INT NOT NULL,
   price DECIMAL(10,2),
   status ENUM('created', 'payment_sent', 'completed', 'canceled', 'disputed') DEFAULT 'created',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (recipes_id) REFERENCES recipes(id),
+  FOREIGN KEY (recipe_id) REFERENCES recipes(id),
   FOREIGN KEY (buyer_id) REFERENCES users(id),
   FOREIGN KEY (author_id) REFERENCES users(id)
 );
