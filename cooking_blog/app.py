@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__, 
             static_folder='static',
@@ -377,6 +377,19 @@ def update_deal(deal_id):
         
     return jsonify({"message": "Deal updated"}), 200
 
+@app.route('/api/deals/<int:deal_id>', methods=['GET'])
+def get_deal(deal_id):
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    deal = Deal.query.get(deal_id)
+    if not deal:
+        return jsonify({"error": "Deal not found"}), 404
+    return jsonify({
+        "id": deal.id,
+        "status": deal.status,
+        "createdAt": deal.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    })
+
 @app.route('/api/deals', methods=['GET'])
 def get_user_deals():
     if 'user' not in session:
@@ -386,6 +399,17 @@ def get_user_deals():
     if not user:
         return jsonify({"error": "User not found"}), 404
         
+    # Auto-cancel expired deals
+    fifteen_mins_ago = datetime.utcnow() - timedelta(minutes=15)
+    expired_deals = Deal.query.filter(
+        Deal.status == 'created',
+        Deal.created_at < fifteen_mins_ago
+    ).all()
+    for d in expired_deals:
+        d.status = 'canceled'
+    if expired_deals:
+        db.session.commit()
+    
     # Get deals where user is buyer or author and status is relevant
     relevant_statuses = ['created', 'disputed', 'payment_sent']
     
