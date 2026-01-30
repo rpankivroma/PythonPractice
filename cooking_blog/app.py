@@ -55,6 +55,11 @@ class Deal(db.Model):
     status = db.Column(db.String(50), default='created')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Add relationships
+    buyer = db.relationship('User', foreign_keys=[buyer_id], backref='purchases')
+    author = db.relationship('User', foreign_keys=[author_id], backref='sales')
+    recipe = db.relationship('Recipe', backref='deals')
+
 
 @app.route('/')
 def index():
@@ -371,6 +376,43 @@ def update_deal(deal_id):
         print(f"DEBUG: Deal {deal_id} status updated to: '{deal.status}'")
         
     return jsonify({"message": "Deal updated"}), 200
+
+@app.route('/api/deals', methods=['GET'])
+def get_user_deals():
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['user']).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    # Get deals where user is buyer or author and status is relevant
+    relevant_statuses = ['created', 'disputed', 'payment_sent']
+    
+    buy_deals = Deal.query.filter(
+        Deal.buyer_id == user.id,
+        Deal.status.in_(relevant_statuses)
+    ).all()
+    
+    sell_deals = Deal.query.filter(
+        Deal.author_id == user.id,
+        Deal.status.in_(relevant_statuses)
+    ).all()
+    
+    def deal_to_dict(d, role):
+        return {
+            "id": d.id,
+            "recipeTitle": d.recipe.title,
+            "price": d.price,
+            "otherPartyName": d.author.username if role == 'buy' else d.buyer.username,
+            "status": d.status,
+            "createdAt": d.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+    return jsonify({
+        "buy": [deal_to_dict(d, 'buy') for d in buy_deals],
+        "sell": [deal_to_dict(d, 'sell') for d in sell_deals]
+    }), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
