@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__, 
             static_folder='static',
@@ -43,6 +44,17 @@ class Recipe(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     for_sale = db.Column(db.Boolean, default=False)
     price = db.Column(db.Float, nullable=True)
+
+class Deal(db.Model):
+    __tablename__ = 'deals'
+    id = db.Column(db.Integer, primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), default='created')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 @app.route('/')
 def index():
@@ -307,6 +319,58 @@ def delete_recipe(recipe_id):
     db.session.delete(recipe)
     db.session.commit()
     return jsonify({"message": "Recipe deleted"}), 200
+
+@app.route('/api/deals', methods=['POST'])
+def create_deal():
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    recipe_id = data.get('recipe_id')
+    
+    recipe = Recipe.query.get(recipe_id)
+    if not recipe:
+        return jsonify({"error": "Recipe not found"}), 404
+        
+    buyer = User.query.filter_by(username=session['user']).first()
+    author = User.query.filter_by(username=recipe.author).first()
+    
+    if not buyer or not author:
+        return jsonify({"error": "User not found"}), 404
+        
+    new_deal = Deal(
+        recipe_id=recipe.id,
+        buyer_id=buyer.id,
+        author_id=author.id,
+        price=recipe.price,
+        status='created'
+    )
+    
+    db.session.add(new_deal)
+    db.session.commit()
+    
+    return jsonify({"message": "Deal created", "id": new_deal.id}), 201
+
+@app.route('/api/deals/<int:deal_id>', methods=['PATCH'])
+def update_deal(deal_id):
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    data = request.get_json()
+    status = data.get('status')
+    
+    print(f"DEBUG: Updating deal {deal_id} with status: '{status}'")
+    
+    deal = Deal.query.get(deal_id)
+    if not deal:
+        return jsonify({"error": "Deal not found"}), 404
+    
+    if status is not None:
+        deal.status = status
+        db.session.commit()
+        print(f"DEBUG: Deal {deal_id} status updated to: '{deal.status}'")
+        
+    return jsonify({"message": "Deal updated"}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
