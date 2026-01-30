@@ -77,6 +77,9 @@
     <div class="modal-content small">
         <span class="close" onclick="closeModal('purchaseModal')">&times;</span>
         <h2>Purchase Recipe</h2>
+        <div id="purchase-timer" style="text-align: center; color: #ef4444; font-weight: 700; font-size: 1.25rem; margin-top: 1rem; display: none;">
+            Expires in: <span id="timer-display">15:00</span>
+        </div>
         <div id="purchase-details" style="margin-top: 1.5rem;">
             <div style="background: var(--muted); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
                 <h3 id="purchase-recipe-title" style="margin-bottom: 0.5rem;"></h3>
@@ -137,12 +140,46 @@
 <script src="static/js/auth.js"></script>
 <script>
     let currentDealId = null;
+    let timerInterval = null;
+
+    function startTimer(createdAt) {
+        clearInterval(timerInterval);
+        const timerDiv = document.getElementById('purchase-timer');
+        const display = document.getElementById('timer-display');
+        timerDiv.style.display = 'block';
+
+        const createdDate = new Date(createdAt + 'Z'); // Ensure UTC
+        const expiryDate = new Date(createdDate.getTime() + 15 * 60 * 1000);
+
+        function update() {
+            const now = new Date();
+            const diff = expiryDate - now;
+
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                display.textContent = "00:00";
+                cancelDeal();
+                return;
+            }
+
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            display.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        update();
+        timerInterval = setInterval(update, 1000);
+    }
 
     function openModal(id) {
         document.getElementById(id).style.display = "block";
     }
     function closeModal(id) {
         document.getElementById(id).style.display = "none";
+        if (id === 'purchaseModal') {
+            clearInterval(timerInterval);
+            document.getElementById('purchase-timer').style.display = 'none';
+        }
     }
 
     async function confirmSentMoney() {
@@ -258,6 +295,11 @@
             const dealResponse = await apiRequest('/deals', 'POST', { recipe_id: recipeId });
             if (dealResponse && dealResponse.id) {
                 currentDealId = dealResponse.id;
+                // Fetch the deal to get the createdAt from server
+                const dealData = await apiRequest(`/deals/${currentDealId}`, 'GET');
+                if (dealData && dealData.createdAt) {
+                    startTimer(dealData.createdAt);
+                }
                 openModal('purchaseModal');
             } else {
                 alert('Failed to initiate purchase');
