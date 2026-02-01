@@ -211,6 +211,18 @@ def get_recipes():
 def get_recipe(recipe_id):
     recipe = Recipe.query.get(recipe_id)
     if recipe:
+        is_purchased = False
+        if 'user' in session:
+            user = User.query.filter_by(username=session['user']).first()
+            if user:
+                deal = Deal.query.filter_by(
+                    recipe_id=recipe.id,
+                    buyer_id=user.id,
+                    status='completed'
+                ).first()
+                if deal:
+                    is_purchased = True
+
         return jsonify({
             "id": recipe.id,
             "title": recipe.title,
@@ -223,7 +235,8 @@ def get_recipe(recipe_id):
             "imageUrl": recipe.image_url,
             "author": recipe.author,
             "forSale": recipe.for_sale,
-            "price": recipe.price
+            "price": recipe.price,
+            "purchased": is_purchased
         })
     return jsonify({"error": "Recipe not found"}), 404
 
@@ -437,6 +450,38 @@ def get_user_deals():
         "buy": [deal_to_dict(d, 'buy') for d in buy_deals],
         "sell": [deal_to_dict(d, 'sell') for d in sell_deals]
     }), 200
+
+@app.route('/api/my-purchased-recipes', methods=['GET'])
+def get_my_purchased_recipes():
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['user']).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    deals = Deal.query.filter_by(buyer_id=user.id, status='completed').all()
+    
+    purchased_recipes = []
+    for deal in deals:
+        r = deal.recipe
+        purchased_recipes.append({
+            "id": r.id,
+            "title": r.title,
+            "description": r.description,
+            "ingredients": r.ingredients,
+            "steps": r.steps,
+            "cookingTime": r.cooking_time,
+            "difficulty": r.difficulty,
+            "chapter": r.chapter,
+            "imageUrl": r.image_url,
+            "author": r.author,
+            "forSale": r.for_sale,
+            "price": r.price,
+            "purchased": True
+        })
+        
+    return jsonify(purchased_recipes), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
