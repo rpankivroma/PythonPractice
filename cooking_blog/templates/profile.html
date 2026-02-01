@@ -303,7 +303,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
-                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
+                        <img src="${recipe.imageUrl}" class="card-img" onerror="this.src='/static/img/NoImageAvalible.png'" alt="No image">
                         <div class="card-content">
                             <h3>${recipe.title}</h3>
                             <p>${recipe.description}</p>
@@ -349,7 +349,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
-                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
+                        <img src="${recipe.imageUrl}" class="card-img" onerror="this.src='/static/img/NoImageAvalible.png'" alt="No image">
                         <div class="card-content">
                             <div style="text-transform: uppercase; color: var(--primary); font-weight: 700; font-size: 0.7rem; margin-bottom: 0.25rem;">${recipe.chapter}</div>
                             <h3>${recipe.title}</h3>

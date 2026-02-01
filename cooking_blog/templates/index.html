@@ -164,7 +164,7 @@
                 card.className = 'card';
                 const priceDisplay = recipe.forSale && recipe.price ? `<span style="font-size: 1rem; font-weight: 700; color: var(--primary);">$${recipe.price.toFixed(2)}</span>` : '';
                 card.innerHTML = `
-                    <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
+                    <img src="${recipe.imageUrl}" class="card-img" onerror="this.src='/static/img/NoImageAvalible.png'" alt="No image">
                     <div class="card-content">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); font-weight: 600;">${recipe.chapter || 'Meals'}</span>
