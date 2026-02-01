@@ -64,6 +64,14 @@
         </div>
     </div>
 
+    <!-- Purchased Recipes Section -->
+    <div style="margin-top: 3rem;">
+        <h2 class="section-title">Purchased Recipes</h2>
+        <div id="purchased-recipe-grid" class="grid">
+            <!-- Purchased recipes will be loaded here -->
+        </div>
+    </div>
+
     <!-- Deals Section -->
     <div style="margin-top: 3rem;">
         <h2 class="section-title">My Deals</h2>
@@ -313,10 +321,46 @@
             
             if (addCard) grid.appendChild(addCard);
 
+            // Load Purchased Recipes
+            loadPurchasedRecipes();
+
             // Load Deals
             loadDeals();
         } catch (error) {
             console.error('Error loading recipes:', error);
+        }
+    }
+
+    async function loadPurchasedRecipes() {
+        try {
+            const purchasedRecipes = await apiRequest('/my-purchased-recipes');
+            
+            const grid = document.getElementById('purchased-recipe-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+             if (!purchasedRecipes || purchasedRecipes.error || purchasedRecipes.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--muted-foreground); padding: 2rem;">No purchased recipes yet.</p>';
+                return;
+            }
+
+            purchasedRecipes.forEach(recipe => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
+                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
+                        <div class="card-content">
+                            <div style="text-transform: uppercase; color: var(--primary); font-weight: 700; font-size: 0.7rem; margin-bottom: 0.25rem;">${recipe.chapter}</div>
+                            <h3>${recipe.title}</h3>
+                            <p>${recipe.description}</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (error) {
+            console.error('Error loading purchased recipes:', error);
         }
     }
 
