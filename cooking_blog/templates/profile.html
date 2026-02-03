@@ -235,6 +235,75 @@
     </div>
 </div>
 
+    <!-- Deal Details Modal -->
+    <div id="dealDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('dealDetailsModal')">&times;</span>
+            <h2>Deal Details</h2>
+            <div id="deal-details-content" style="margin-top: 1.5rem;">
+                <div style="background: var(--muted); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 id="detail-recipe-title" style="margin-bottom: 0.5rem;"></h3>
+                        <p id="detail-recipe-description" style="color: var(--muted-foreground); font-size: 0.9rem;"></p>
+                    </div>
+                    <div id="detail-price" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"></div>
+                </div>
+
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div style="background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                        <h4 style="margin-bottom: 1rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted-foreground);">Transaction Info</h4>
+                        <div style="margin-bottom: 0.75rem;">
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Status:</span>
+                            <div id="detail-status" style="font-weight: 600; text-transform: capitalize;"></div>
+                        </div>
+                        <div style="margin-bottom: 0.75rem;">
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Created At:</span>
+                            <div id="detail-created-at" style="font-weight: 600;"></div>
+                        </div>
+                        <div id="detail-timer-container" style="display: none; color: #ef4444;">
+                            <span style="font-size: 0.85rem;">Auto-cancels in:</span>
+                            <div id="detail-timer-display" style="font-weight: 700; font-size: 1.1rem;"></div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                        <h4 style="margin-bottom: 1rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted-foreground);">Participants</h4>
+                        <div style="margin-bottom: 0.75rem;">
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Author:</span>
+                            <div id="detail-author" style="font-weight: 600;"></div>
+                        </div>
+                        <div style="margin-bottom: 0.75rem;">
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Buyer:</span>
+                            <div id="detail-buyer" style="font-weight: 600;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem; background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                    <h4 style="margin-bottom: 1rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted-foreground);">Author Bank Details</h4>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Bank Name:</span>
+                            <div id="detail-bank-name" style="font-weight: 600;"></div>
+                        </div>
+                        <div>
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Holder:</span>
+                            <div id="detail-card-holder" style="font-weight: 600;"></div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Number:</span>
+                            <div id="detail-card-number" style="font-weight: 600; letter-spacing: 0.1em;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detail-actions" style="margin-top: 2rem; display: flex; gap: 1rem;">
+                    <!-- Buttons will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script src="static/js/auth.js"></script>
 <script>
     function openModal(id) {
@@ -249,6 +318,8 @@
             document.getElementById('forSale').checked = false;
             document.getElementById('price-group').style.display = 'none';
             document.getElementById('price').required = false;
+        } else if (id === 'dealDetailsModal') {
+            clearInterval(detailTimerInterval);
         }
     }
 
@@ -303,7 +374,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
-                        <img src="${recipe.imageUrl}" class="card-img" onerror="this.src='/static/img/NoImageAvalible.png'" alt="No image">
+                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
                         <div class="card-content">
                             <h3>${recipe.title}</h3>
                             <p>${recipe.description}</p>
@@ -339,7 +410,7 @@
             if (!grid) return;
             grid.innerHTML = '';
             
-             if (!purchasedRecipes || purchasedRecipes.error || purchasedRecipes.length === 0) {
+            if (!purchasedRecipes || purchasedRecipes.error || purchasedRecipes.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--muted-foreground); padding: 2rem;">No purchased recipes yet.</p>';
                 return;
             }
@@ -349,7 +420,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
-                        <img src="${recipe.imageUrl}" class="card-img" onerror="this.src='/static/img/NoImageAvalible.png'" alt="No image">
+                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
                         <div class="card-content">
                             <div style="text-transform: uppercase; color: var(--primary); font-weight: 700; font-size: 0.7rem; margin-bottom: 0.25rem;">${recipe.chapter}</div>
                             <h3>${recipe.title}</h3>
@@ -397,19 +468,14 @@
         deals.forEach(deal => {
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid var(--border)';
+            tr.style.cursor = 'pointer';
+            tr.onclick = () => openDealDetails(deal.id);
             
             let actions = '';
             if (currentDealsTab === 'sell') {
-                if (deal.status === 'payment_sent') {
+                if (deal.status === 'payment_sent' || deal.status === 'disputed') {
                     actions = `
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'completed')" style="height: 1.75rem; font-size: 0.75rem;">Complete</button>
-                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'disputed')" style="background: #f59e0b; height: 1.75rem; font-size: 0.75rem;">Dispute</button>
-                        </div>
-                    `;
-                } else if (deal.status === 'disputed') {
-                    actions = `
-                        <div style="display: flex; gap: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation()">
                             <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'completed')" style="height: 1.75rem; font-size: 0.75rem;">Complete</button>
                             <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'disputed')" style="background: #f59e0b; height: 1.75rem; font-size: 0.75rem;">Dispute</button>
                         </div>
@@ -418,14 +484,16 @@
             } else {
                 if (deal.status === 'created') {
                     actions = `
-                        <div style="display: flex; gap: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation()">
                             <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'payment_sent')" style="height: 1.75rem; font-size: 0.75rem;">I sent money</button>
                             <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
                         </div>
                     `;
                 } else {
                     actions = `
-                        <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
+                        <div onclick="event.stopPropagation()">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
+                        </div>
                     `;
                 }
             }
@@ -440,6 +508,81 @@
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    let detailTimerInterval = null;
+
+    function openDealDetails(dealId) {
+        const deal = [...userDeals.buy, ...userDeals.sell].find(d => d.id === dealId);
+        if (!deal) return;
+
+        document.getElementById('detail-recipe-title').textContent = deal.recipeTitle;
+        document.getElementById('detail-recipe-description').textContent = deal.recipeDescription || 'No description available.';
+        document.getElementById('detail-price').textContent = `$${deal.price.toFixed(2)}`;
+        document.getElementById('detail-status').textContent = deal.status.replace('_', ' ');
+        document.getElementById('detail-created-at').textContent = deal.createdAt;
+        document.getElementById('detail-author').textContent = deal.authorName;
+        document.getElementById('detail-buyer').textContent = deal.buyerName;
+        document.getElementById('detail-bank-name').textContent = deal.bankName || 'Not provided';
+        document.getElementById('detail-card-holder').textContent = deal.cardHolderName || 'Not provided';
+        document.getElementById('detail-card-number').textContent = deal.cardNumber || 'Not provided';
+
+        const actionsContainer = document.getElementById('detail-actions');
+        actionsContainer.innerHTML = '';
+
+        if (deal.status === 'created') {
+            const createdDate = new Date(deal.createdAt + 'Z');
+            const expiryDate = new Date(createdDate.getTime() + 15 * 60 * 1000);
+            
+            document.getElementById('detail-timer-container').style.display = 'block';
+            clearInterval(detailTimerInterval);
+            
+            const updateTimer = () => {
+                const now = new Date();
+                const diff = expiryDate - now;
+                if (diff <= 0) {
+                    document.getElementById('detail-timer-display').textContent = '00:00';
+                    clearInterval(detailTimerInterval);
+                    loadDeals(); // Refresh to show canceled status
+                    return;
+                }
+                const mins = Math.floor(diff / 60000);
+                const secs = Math.floor((diff % 60000) / 1000);
+                document.getElementById('detail-timer-display').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            updateTimer();
+            detailTimerInterval = setInterval(updateTimer, 1000);
+
+            if (userDeals.buy.some(d => d.id === deal.id)) {
+                actionsContainer.innerHTML = `
+                    <button class="btn" style="flex: 1;" onclick="updateDealStatusAndClose(${deal.id}, 'payment_sent')">I sent the money</button>
+                    <button class="btn" style="flex: 1; background: #ef4444;" onclick="updateDealStatusAndClose(${deal.id}, 'canceled')">Cancel deal</button>
+                `;
+            }
+        } else {
+            document.getElementById('detail-timer-container').style.display = 'none';
+            clearInterval(detailTimerInterval);
+        }
+
+        if (userDeals.sell.some(d => d.id === deal.id)) {
+            if (deal.status === 'payment_sent' || deal.status === 'disputed') {
+                actionsContainer.innerHTML = `
+                    <button class="btn" style="flex: 1;" onclick="updateDealStatusAndClose(${deal.id}, 'completed')">Confirm Payment & Complete</button>
+                    <button class="btn" style="flex: 1; background: #f59e0b;" onclick="updateDealStatusAndClose(${deal.id}, 'disputed')">Dispute Transaction</button>
+                `;
+            }
+        } else if (userDeals.buy.some(d => d.id === deal.id) && deal.status !== 'created') {
+             actionsContainer.innerHTML = `
+                <button class="btn" style="flex: 1; background: #ef4444;" onclick="updateDealStatusAndClose(${deal.id}, 'canceled')">Cancel deal</button>
+            `;
+        }
+
+        openModal('dealDetailsModal');
+    }
+
+    async function updateDealStatusAndClose(id, status) {
+        await updateDealStatus(id, status);
+        closeModal('dealDetailsModal');
     }
 
     async function updateDealStatus(id, status) {

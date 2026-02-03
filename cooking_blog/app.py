@@ -439,9 +439,16 @@ def get_user_deals():
     def deal_to_dict(d, role):
         return {
             "id": d.id,
+            "recipeId": d.recipe.id,
             "recipeTitle": d.recipe.title,
+            "recipeDescription": d.recipe.description,
             "price": d.price,
             "otherPartyName": d.author.username if role == 'buy' else d.buyer.username,
+            "buyerName": d.buyer.username,
+            "authorName": d.author.username,
+            "bankName": d.author.bank_name,
+            "cardNumber": d.author.card_number,
+            "cardHolderName": d.author.card_holder_name,
             "status": d.status,
             "createdAt": d.created_at.strftime('%Y-%m-%d %H:%M:%S')
         }
