@@ -91,17 +91,26 @@
                     <span style="color: var(--muted-foreground); font-size: 0.85rem;">Author:</span>
                     <div id="purchase-author" style="font-weight: 600;"></div>
                 </div>
-                <div style="margin-bottom: 0.75rem;">
-                    <span style="color: var(--muted-foreground); font-size: 0.85rem;">Bank Name:</span>
-                    <div id="purchase-bank-name" style="font-weight: 600;"></div>
+                <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <span style="color: var(--muted-foreground); font-size: 0.85rem;">Bank Name:</span>
+                        <div id="purchase-bank-name" style="font-weight: 600;"></div>
+                    </div>
+                    <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyToClipboard('purchase-bank-name')">Copy</button>
                 </div>
-                <div style="margin-bottom: 0.75rem;">
-                    <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Number:</span>
-                    <div id="purchase-card-number" style="font-weight: 600;"></div>
+                <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Number:</span>
+                        <div id="purchase-card-number" style="font-weight: 600;"></div>
+                    </div>
+                    <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyToClipboard('purchase-card-number')">Copy</button>
                 </div>
-                <div>
-                    <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Holder:</span>
-                    <div id="purchase-card-holder" style="font-weight: 600;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Holder:</span>
+                        <div id="purchase-card-holder" style="font-weight: 600;"></div>
+                    </div>
+                    <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyToClipboard('purchase-card-holder')">Copy</button>
                 </div>
             </div>
             <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--muted-foreground);">Please transfer the amount to the author's bank account to complete your purchase.</p>
@@ -271,12 +280,62 @@
         }
     }
 
+    function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
+            if (btn) {
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            // Fallback for older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
+                if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+
     async function buyRecipe(recipeId) {
         const user = await checkAuth();
         if (!user) {
             alert('Please log in to purchase this recipe.');
             openModal('loginModal');
             return;
+        }
+
+        try {
+            // Check if user already has a payment_sent deal for this recipe
+            const dealsRes = await apiRequest('/deals', 'GET');
+            if (dealsRes && dealsRes.buy) {
+                const existingDeal = dealsRes.buy.find(d => d.recipeId === recipeId && d.status === 'payment_sent');
+                if (existingDeal) {
+                    currentDealId = existingDeal.id;
+                    openModal('confirmationModal');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error('Error checking existing deals:', e);
         }
         
         try {
