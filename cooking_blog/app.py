@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session, render_template
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -9,7 +10,8 @@ app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 app.secret_key = 'super-secret-key-for-session'
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins='*')
+socketio = SocketIO(app, cors_allowed_origins='*', manage_session=False)
 
 # MySQL Configuration using SQLAlchemy with PyMySQL driver
 # Format: mysql+pymysql://username:password@localhost/db_name
@@ -59,6 +61,18 @@ class Deal(db.Model):
     buyer = db.relationship('User', foreign_keys=[buyer_id], backref='purchases')
     author = db.relationship('User', foreign_keys=[author_id], backref='sales')
     recipe = db.relationship('Recipe', backref='deals')
+
+class DealMessage(db.Model):
+    __tablename__ = 'deal_messages'
+    id = db.Column(db.Integer, primary_key=True)
+    deal_id = db.Column(db.Integer, db.ForeignKey('deals.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Add relationships
+    deal = db.relationship('Deal', backref='messages')
+    sender = db.relationship('User', backref='sent_messages')
 
 
 @app.route('/')
@@ -458,6 +472,49 @@ def get_user_deals():
         "sell": [deal_to_dict(d, 'sell') for d in sell_deals]
     }), 200
 
+@app.route('/api/deals/history', methods=['GET'])
+def get_user_deals_history():
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['user']).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    relevant_statuses = ['completed', 'canceled']
+    
+    buy_deals = Deal.query.filter(
+        Deal.buyer_id == user.id,
+        Deal.status.in_(relevant_statuses)
+    ).all()
+    
+    sell_deals = Deal.query.filter(
+        Deal.author_id == user.id,
+        Deal.status.in_(relevant_statuses)
+    ).all()
+    
+    def deal_to_dict(d, role):
+        return {
+            "id": d.id,
+            "recipeId": d.recipe.id,
+            "recipeTitle": d.recipe.title,
+            "recipeDescription": d.recipe.description,
+            "price": d.price,
+            "otherPartyName": d.author.username if role == 'buy' else d.buyer.username,
+            "buyerName": d.buyer.username,
+            "authorName": d.author.username,
+            "bankName": d.author.bank_name,
+            "cardNumber": d.author.card_number,
+            "cardHolderName": d.author.card_holder_name,
+            "status": d.status,
+            "createdAt": d.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+    return jsonify({
+        "buy": [deal_to_dict(d, 'buy') for d in buy_deals],
+        "sell": [deal_to_dict(d, 'sell') for d in sell_deals]
+    }), 200
+
 @app.route('/api/my-purchased-recipes', methods=['GET'])
 def get_my_purchased_recipes():
     if 'user' not in session:
@@ -490,5 +547,96 @@ def get_my_purchased_recipes():
         
     return jsonify(purchased_recipes), 200
 
+# Chat Message Endpoints
+@app.route('/api/deals/<int:deal_id>/messages', methods=['GET'])
+def get_deal_messages(deal_id):
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    deal = Deal.query.get(deal_id)
+    if not deal:
+        return jsonify({"error": "Deal not found"}), 404
+    
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or (user.id != deal.buyer_id and user.id != deal.author_id):
+        return jsonify({"error": "Unauthorized access to this deal"}), 403
+    
+    messages = DealMessage.query.filter_by(deal_id=deal_id).order_by(DealMessage.created_at.asc()).all()
+    
+    return jsonify([{
+        "id": m.id,
+        "dealId": m.deal_id,
+        "senderId": m.sender_id,
+        "senderName": m.sender.username,
+        "message": m.message,
+        "createdAt": m.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    } for m in messages]), 200
+
+@app.route('/api/deals/<int:deal_id>/messages', methods=['POST'])
+def create_deal_message(deal_id):
+    if 'user' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    text = data.get('text', '').strip()
+    
+    if not text:
+        return jsonify({"error": "Message cannot be empty"}), 400
+    
+    deal = Deal.query.get(deal_id)
+    if not deal:
+        return jsonify({"error": "Deal not found"}), 404
+    
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or (user.id != deal.buyer_id and user.id != deal.author_id):
+        return jsonify({"error": "Unauthorized access to this deal"}), 403
+    
+    new_message = DealMessage(
+        deal_id=deal_id,
+        sender_id=user.id,
+        message=text
+    )
+    
+    db.session.add(new_message)
+    db.session.commit()
+    
+    # Emit real-time message via SocketIO
+    message_data = {
+        "id": new_message.id,
+        "dealId": new_message.deal_id,
+        "senderId": new_message.sender_id,
+        "senderName": user.username,
+        "message": new_message.message,
+        "createdAt": new_message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    }
+    socketio.emit('new_message', message_data, room=f'deal_{deal_id}')
+    
+    return jsonify(message_data), 201
+
+# SocketIO Event Handlers
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+
+@socketio.on('join_deal')
+def handle_join_deal(data):
+    deal_id = data.get('dealId')
+    if deal_id:
+        room = f'deal_{deal_id}'
+        join_room(room)
+        print(f'User joined room: {room}')
+
+@socketio.on('leave_deal')
+def handle_leave_deal(data):
+    deal_id = data.get('dealId')
+    if deal_id:
+        room = f'deal_{deal_id}'
+        leave_room(room)
+        print(f'User left room: {room}')
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
