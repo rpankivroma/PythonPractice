@@ -6,6 +6,7 @@
     <title>Profile - Gourmet Share</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
 
@@ -30,6 +31,26 @@
         </div>
     </div>
 
+    <!-- Bank Details Section -->
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
+        <h2 class="section-title" style="margin-bottom: 1.5rem;">Author Bank Details</h2>
+        <form id="bank-details-form">
+            <div class="form-group">
+                <label>Bank Name</label>
+                <input type="text" id="bank-name" placeholder="e.g. Chase, Bank of America">
+            </div>
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" id="card-number" placeholder="XXXX XXXX XXXX XXXX">
+            </div>
+            <div class="form-group">
+                <label>Card Holder Name</label>
+                <input type="text" id="card-holder-name" placeholder="Name as it appears on card">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Save Bank Details</button>
+        </form>
+    </div>
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 class="section-title" style="margin-bottom: 0;">My Recipes</h2>
         <button class="btn" onclick="openModal('newRecipeModal')">Create New Recipe</button>
@@ -41,6 +62,70 @@
                 <div style="font-size: 2rem; margin-bottom: 1rem;">+</div>
                 <p>Add New Recipe</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Purchased Recipes Section -->
+    <div style="margin-top: 3rem;">
+        <h2 class="section-title">Purchased Recipes</h2>
+        <div id="purchased-recipe-grid" class="grid">
+            <!-- Purchased recipes will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Deals Section -->
+    <div style="margin-top: 3rem;">
+        <h2 class="section-title">My Deals</h2>
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <button class="btn btn-sm" id="btn-buy-deals" onclick="switchDealsTab('buy')">Buy</button>
+            <button class="btn btn-sm variant-ghost" id="btn-sell-deals" onclick="switchDealsTab('sell')">Sell</button>
+        </div>
+
+        <div id="deals-container" style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--muted); text-align: left;">
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Recipe</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Price</th>
+                        <th id="th-other-party" style="padding: 1rem; border-bottom: 1px solid var(--border);">Author</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Date</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Status</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="deals-tbody">
+                    <!-- Deals will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Deals History Section -->
+    <div style="margin-top: 3rem;">
+        <h2 class="section-title">Deals History</h2>
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <button class="btn btn-sm" id="btn-buy-history" onclick="switchHistoryTab('buy')">Buy</button>
+            <button class="btn btn-sm variant-ghost" id="btn-sell-history" onclick="switchHistoryTab('sell')">Sell</button>
+        </div>
+
+        <div id="history-container" style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--muted); text-align: left;">
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Recipe</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Price</th>
+                        <th id="th-other-party-history" style="padding: 1rem; border-bottom: 1px solid var(--border);">Author</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Date</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Status</th>
+                        <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                    <!-- History deals will be loaded here -->
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -93,6 +178,16 @@
                     <option value="Desserts">Desserts</option>
                     <option value="Drinks">Drinks</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="forSale" onchange="togglePriceField()">
+                    <span>For Sale</span>
+                </label>
+            </div>
+            <div class="form-group" id="price-group" style="display: none;">
+                <label>Price ($)</label>
+                <input type="number" id="price" placeholder="e.g. 4.99" step="0.01" min="0">
             </div>
             <button type="submit" class="btn" style="width: 100%;">Publish Recipe</button>
         </form>
@@ -169,17 +264,178 @@
     </div>
 </div>
 
+<!-- Deal Details Modal -->
+<div id="dealDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 1000px; padding: 0;">
+        <span class="close" onclick="closeModal('dealDetailsModal')" style="z-index: 10; color: white; right: 2rem; top: 1.5rem;">&times;</span>
+        <div style="display: flex; min-height: 600px;">
+            <!-- Left: Deal Info -->
+            <div style="flex: 1.2; padding: 2.5rem; overflow-y: auto;">
+                <h2 style="margin-bottom: 2rem;">Deal Details</h2>
+                <div id="deal-details-content">
+                    <div style="background: var(--muted); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h3 id="detail-recipe-title" style="margin-bottom: 0.5rem;"></h3>
+                            <p id="detail-recipe-description" style="color: var(--muted-foreground); font-size: 0.9rem;"></p>
+                        </div>
+                        <div id="detail-price" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"></div>
+                    </div>
+
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div style="background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                            <h4 style="margin-bottom: 1rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted-foreground);">Transaction Info</h4>
+                            <div style="margin-bottom: 0.75rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Status:</span>
+                                <div id="detail-status" style="font-weight: 600; text-transform: capitalize;"></div>
+                            </div>
+                            <div style="margin-bottom: 0.75rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Created At:</span>
+                                <div id="detail-created-at" style="font-weight: 600;"></div>
+                            </div>
+                            <div id="detail-timer-container" style="display: none; color: #ef4444;">
+                                <span style="font-size: 0.85rem;">Auto-cancels in:</span>
+                                <div id="detail-timer-display" style="font-weight: 700; font-size: 1.1rem;"></div>
+                            </div>
+                        </div>
+
+                        <div style="background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                            <h4 style="margin-bottom: 1rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted-foreground);">Participants</h4>
+                            <div style="margin-bottom: 0.75rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Author:</span>
+                                <div id="detail-author" style="font-weight: 600;"></div>
+                            </div>
+                            <div style="margin-bottom: 0.75rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Buyer:</span>
+                                <div id="detail-buyer" style="font-weight: 600;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                        <h4 style="margin-bottom: 1rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted-foreground);">Author Bank Details</h4>
+                        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Bank Name:</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div id="detail-bank-name" style="font-weight: 600;"></div>
+                                    <button class="btn btn-sm variant-ghost" style="padding: 0.2rem; height: auto; min-height: 0px;" onclick="copyToClipboard(document.getElementById('detail-bank-name').textContent, this)" title="Copy Bank Name">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Holder:</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div id="detail-card-holder" style="font-weight: 600;"></div>
+                                    <button class="btn btn-sm variant-ghost" style="padding: 0.2rem; height: auto; min-height: 0px;" onclick="copyToClipboard(document.getElementById('detail-card-holder').textContent, this)" title="Copy Card Holder">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 0.25rem;">
+                                <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Number:</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div id="detail-card-number" style="font-weight: 600; letter-spacing: 0.1em;"></div>
+                                    <button class="btn btn-sm variant-ghost" style="padding: 0.2rem; height: auto; min-height: 0px;" onclick="copyToClipboard(document.getElementById('detail-card-number').textContent, this)" title="Copy Card Number">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="detail-actions" style="margin-top: 2rem; display: flex; gap: 1rem;">
+                        <!-- Buttons will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Chat Panel -->
+            <div style="flex: 0.8; background: var(--muted); padding: 2.5rem; border-left: 1px solid var(--border); display: flex; flex-direction: column;">
+                <h4 style="margin-bottom: 1.5rem; font-family: var(--font-serif); font-size: 1.25rem;">Chat with <span id="chat-partner-name">...</span></h4>
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Chat bubbles will be injected here -->
+                    <p style="text-align: center; color: var(--muted-foreground); font-size: 0.85rem;">Loading messages...</p>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                    <button class="btn btn-sm" onclick="sendChatMessage()" style="height: 100%; padding: 0 1rem;">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="static/js/auth.js"></script>
 <script>
+    let activeDealId = null;
+    let chatInterval = null;
+    let socket = null;
+
+    // Initialize Socket.IO connection
+    function initSocketIO() {
+        socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling']
+        });
+
+        socket.on('connect', () => {
+            console.log('Socket.IO connected');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket.IO disconnected');
+        });
+
+        socket.on('new_message', (data) => {
+            console.log('Received new message:', data);
+            if (data.dealId === activeDealId) {
+                appendChatMessage(data);
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
+        });
+    }
+
+    // Initialize Socket.IO on page load
+    if (typeof io !== 'undefined') {
+        initSocketIO();
+    }
+
+    function copyToClipboard(text, btn) {
+        if (!text || text === 'Not provided') return;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+
     function openModal(id) {
         document.getElementById(id).style.display = "block";
     }
+    
     function closeModal(id) {
         document.getElementById(id).style.display = "none";
         if (id === 'newRecipeModal') {
             currentEditingId = null;
             document.getElementById('recipe-form').reset();
             document.getElementById('modal-title').textContent = 'Create New Recipe';
+            document.getElementById('forSale').checked = false;
+            document.getElementById('price-group').style.display = 'none';
+            document.getElementById('price').required = false;
+        } else if (id === 'dealDetailsModal') {
+            clearInterval(detailTimerInterval);
+            clearInterval(chatInterval);
+            if (socket && activeDealId) {
+                socket.emit('leave_deal', { dealId: activeDealId });
+            }
+            activeDealId = null;
         }
     }
 
@@ -195,9 +451,24 @@
         }
     }
 
+    function togglePriceField() {
+        const forSaleCheckbox = document.getElementById('forSale');
+        const priceGroup = document.getElementById('price-group');
+        const priceInput = document.getElementById('price');
+        if (forSaleCheckbox.checked) {
+            priceGroup.style.display = 'block';
+            priceInput.required = true;
+        } else {
+            priceGroup.style.display = 'none';
+            priceInput.required = false;
+            priceInput.value = '';
+        }
+    }
+
     window.onclick = function(event) {
         if (event.target.className === 'modal') {
-            event.target.style.display = "none";
+            const id = event.target.id;
+            closeModal(id);
         }
     }
 
@@ -237,8 +508,371 @@
             });
             
             if (addCard) grid.appendChild(addCard);
+
+            // Load Purchased Recipes
+            loadPurchasedRecipes();
+
+            // Load Deals
+            loadDeals();
+            loadDealsHistory();
         } catch (error) {
             console.error('Error loading recipes:', error);
+        }
+    }
+
+    async function loadPurchasedRecipes() {
+        try {
+            const purchasedRecipes = await apiRequest('/my-purchased-recipes');
+            
+            const grid = document.getElementById('purchased-recipe-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            if (!purchasedRecipes || purchasedRecipes.error || purchasedRecipes.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--muted-foreground); padding: 2rem;">No purchased recipes yet.</p>';
+                return;
+            }
+
+            purchasedRecipes.forEach(recipe => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="cursor: pointer;" onclick="window.location.href='recipe.html?id=${recipe.id}'">
+                        <img src="${recipe.imageUrl}" class="card-img" alt="${recipe.title}">
+                        <div class="card-content">
+                            <div style="text-transform: uppercase; color: var(--primary); font-weight: 700; font-size: 0.7rem; margin-bottom: 0.25rem;">${recipe.chapter}</div>
+                            <h3>${recipe.title}</h3>
+                            <p>${recipe.description}</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (error) {
+            console.error('Error loading purchased recipes:', error);
+        }
+    }
+
+    let currentDealsTab = 'buy';
+    let userDeals = { buy: [], sell: [] };
+    let userHistory = { buy: [], sell: [] };
+    let currentHistoryTab = 'buy';
+
+    async function switchHistoryTab(tab) {
+        currentHistoryTab = tab;
+        document.getElementById('btn-buy-history').className = tab === 'buy' ? 'btn btn-sm' : 'btn btn-sm variant-ghost';
+        document.getElementById('btn-sell-history').className = tab === 'sell' ? 'btn btn-sm' : 'btn btn-sm variant-ghost';
+        document.getElementById('th-other-party-history').textContent = tab === 'buy' ? 'Author' : 'Buyer';
+        renderDealsHistory();
+    }
+
+    async function loadDealsHistory() {
+        try {
+            const res = await apiRequest('/deals/history', 'GET');
+            if (res && !res.error) {
+                userHistory = res;
+                renderDealsHistory();
+            }
+        } catch (e) {
+            console.error('Error loading deals history:', e);
+        }
+    }
+
+    function renderDealsHistory() {
+        const tbody = document.getElementById('history-tbody');
+        if (!tbody) return;
+        
+        const deals = userHistory[currentHistoryTab] || [];
+        tbody.innerHTML = deals.length ? '' : '<tr><td colspan="6" style="padding: 2rem; text-align: center; color: var(--muted-foreground);">No history found</td></tr>';
+        
+        deals.forEach(deal => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border)';
+            tr.style.cursor = 'pointer';
+            tr.onclick = () => openDealDetails(deal.id);
+            
+            const actions = `
+                <div onclick="event.stopPropagation()">
+                    <button class="btn btn-sm variant-ghost" onclick="openDealDetails(${deal.id})" style="height: 1.75rem; font-size: 0.75rem;">View</button>
+                </div>
+            `;
+
+            tr.innerHTML = `
+                <td style="padding: 1rem;">${deal.recipeTitle}</td>
+                <td style="padding: 1rem;">$${deal.price.toFixed(2)}</td>
+                <td style="padding: 1rem;">${deal.otherPartyName}</td>
+                <td style="padding: 1rem;">${deal.createdAt}</td>
+                <td style="padding: 1rem;"><span style="text-transform: capitalize; background: var(--muted); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${deal.status.replace('_', ' ')}</span></td>
+                <td style="padding: 1rem;">${actions}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function switchDealsTab(tab) {
+        currentDealsTab = tab;
+        document.getElementById('btn-buy-deals').className = tab === 'buy' ? 'btn btn-sm' : 'btn btn-sm variant-ghost';
+        document.getElementById('btn-sell-deals').className = tab === 'sell' ? 'btn btn-sm' : 'btn btn-sm variant-ghost';
+        document.getElementById('th-other-party').textContent = tab === 'buy' ? 'Author' : 'Buyer';
+        renderDeals();
+    }
+
+    async function loadDeals() {
+        try {
+            const res = await apiRequest('/deals', 'GET');
+            if (res && !res.error) {
+                userDeals = res;
+                renderDeals();
+            }
+        } catch (e) {
+            console.error('Error loading deals:', e);
+        }
+    }
+
+    function renderDeals() {
+        const tbody = document.getElementById('deals-tbody');
+        if (!tbody) return;
+        
+        const deals = userDeals[currentDealsTab] || [];
+        tbody.innerHTML = deals.length ? '' : '<tr><td colspan="6" style="padding: 2rem; text-align: center; color: var(--muted-foreground);">No deals found</td></tr>';
+        
+        deals.forEach(deal => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border)';
+            tr.style.cursor = 'pointer';
+            tr.onclick = () => openDealDetails(deal.id);
+            
+            let actions = '';
+            if (currentDealsTab === 'sell') {
+                if (deal.status === 'payment_sent' || deal.status === 'disputed') {
+                    actions = `
+                        <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation()">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'completed')" style="height: 1.75rem; font-size: 0.75rem;">Complete</button>
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'disputed')" style="background: #f59e0b; height: 1.75rem; font-size: 0.75rem;">Dispute</button>
+                        </div>
+                    `;
+                }   
+            } else {
+                if (deal.status === 'created') {
+                    actions = `
+                        <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation()">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'payment_sent')" style="height: 1.75rem; font-size: 0.75rem;">I sent money</button>
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
+                        </div>
+                    `;
+                } else {
+                    actions = `
+                        <div onclick="event.stopPropagation()">
+                            <button class="btn btn-sm" onclick="updateDealStatus(${deal.id}, 'canceled')" style="background: #ef4444; height: 1.75rem; font-size: 0.75rem;">Cancel</button>
+                        </div>
+                    `;
+                }
+            }
+
+            tr.innerHTML = `
+                <td style="padding: 1rem;">${deal.recipeTitle}</td>
+                <td style="padding: 1rem;">$${deal.price.toFixed(2)}</td>
+                <td style="padding: 1rem;">${deal.otherPartyName}</td>
+                <td style="padding: 1rem;">${deal.createdAt}</td>
+                <td style="padding: 1rem;"><span style="text-transform: capitalize; background: var(--muted); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${deal.status.replace('_', ' ')}</span></td>
+                <td style="padding: 1rem;">${actions}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    let detailTimerInterval = null;
+
+    async function openDealDetails(dealId) {
+        let deal = [...userDeals.buy, ...userDeals.sell].find(d => d.id === dealId);
+        if (!deal) {
+             deal = [...userHistory.buy, ...userHistory.sell].find(d => d.id === dealId);
+        }
+        if (!deal) return;
+
+        activeDealId = dealId;
+        document.getElementById('detail-recipe-title').textContent = deal.recipeTitle;
+        document.getElementById('detail-recipe-description').textContent = deal.recipeDescription || 'No description available.';
+        document.getElementById('detail-price').textContent = `$${deal.price.toFixed(2)}`;
+        document.getElementById('detail-status').textContent = deal.status.replace('_', ' ');
+        document.getElementById('detail-created-at').textContent = deal.createdAt;
+        document.getElementById('detail-author').textContent = deal.authorName;
+        document.getElementById('detail-buyer').textContent = deal.buyerName;
+        document.getElementById('detail-bank-name').textContent = deal.bankName || 'Not provided';
+        document.getElementById('detail-card-holder').textContent = deal.cardHolderName || 'Not provided';
+        document.getElementById('detail-card-number').textContent = deal.cardNumber || 'Not provided';
+        
+        // Update Chat Partner Name
+        const currentUser = await checkAuth();
+        const partnerName = currentUser.username === deal.authorName ? deal.buyerName : deal.authorName;
+        document.getElementById('chat-partner-name').textContent = partnerName;
+
+        // Configure chat read-only state based on deal status
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.querySelector('.chat-input-area button');
+        const isHistorical = deal.status === 'completed' || deal.status === 'canceled';
+
+        if (isHistorical) {
+            chatInput.disabled = true;
+            chatInput.placeholder = "Chat is read-only for historical deals";
+            sendButton.disabled = true;
+        } else {
+            chatInput.disabled = false;
+            chatInput.placeholder = "Type a message...";
+            sendButton.disabled = false;
+        }
+
+        const actionsContainer = document.getElementById('detail-actions');
+        actionsContainer.innerHTML = '';
+
+        if (deal.status === 'created') {
+            const createdDate = new Date(deal.createdAt + 'Z');
+            const expiryDate = new Date(createdDate.getTime() + 15 * 60 * 1000);
+            
+            document.getElementById('detail-timer-container').style.display = 'block';
+            clearInterval(detailTimerInterval);
+            
+            const updateTimer = () => {
+                const now = new Date();
+                const diff = expiryDate - now;
+                if (diff <= 0) {
+                    document.getElementById('detail-timer-display').textContent = '00:00';
+                    clearInterval(detailTimerInterval);
+                    loadDeals(); // Refresh to show canceled status
+                    return;
+                }
+                const mins = Math.floor(diff / 60000);
+                const secs = Math.floor((diff % 60000) / 1000);
+                document.getElementById('detail-timer-display').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            updateTimer();
+            detailTimerInterval = setInterval(updateTimer, 1000);
+
+            if (userDeals.buy.some(d => d.id === deal.id)) {
+                actionsContainer.innerHTML = `
+                    <button class="btn" style="flex: 1;" onclick="updateDealStatusAndClose(${deal.id}, 'payment_sent')">I sent the money</button>
+                    <button class="btn" style="flex: 1; background: #ef4444;" onclick="updateDealStatusAndClose(${deal.id}, 'canceled')">Cancel deal</button>
+                `;
+            }
+        } else {
+            document.getElementById('detail-timer-container').style.display = 'none';
+            clearInterval(detailTimerInterval);
+        }
+
+        if (userDeals.sell.some(d => d.id === deal.id)) {
+            if (deal.status === 'payment_sent' || deal.status === 'disputed') {
+                actionsContainer.innerHTML = `
+                    <button class="btn" style="flex: 1;" onclick="updateDealStatusAndClose(${deal.id}, 'completed')">Confirm Payment & Complete</button>
+                    <button class="btn" style="flex: 1; background: #f59e0b;" onclick="updateDealStatusAndClose(${deal.id}, 'disputed')">Dispute Transaction</button>
+                `;
+            }
+        } else if (userDeals.buy.some(d => d.id === deal.id) && deal.status !== 'created') {
+             actionsContainer.innerHTML = `
+                <button class="btn" style="flex: 1; background: #ef4444;" onclick="updateDealStatusAndClose(${deal.id}, 'canceled')">Cancel deal</button>
+            `;
+        }
+
+        // Initialize Chat
+        loadChatMessages();
+        clearInterval(chatInterval);
+        
+        // Join Socket.IO room for real-time chat
+        if (socket) {
+            socket.emit('join_deal', { dealId: dealId });
+        }
+
+        openModal('dealDetailsModal');
+    }
+
+    async function loadChatMessages() {
+        if (!activeDealId) return;
+        try {
+            const currentUser = await checkAuth();
+            const messages = await apiRequest(`/deals/${activeDealId}/messages`, 'GET');
+            const chatBox = document.getElementById('chat-messages');
+            
+            if (messages && !messages.error) {
+                if (messages.length === 0) {
+                    chatBox.innerHTML = '<p style="text-align: center; color: var(--muted-foreground); font-size: 0.85rem; margin-top: 2rem;">No messages yet. Say hi!</p>';
+                    return;
+                }
+
+                chatBox.innerHTML = '';
+                messages.forEach(msg => {
+                    appendChatMessage(msg, currentUser);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        } catch (e) {
+            console.error('Error loading chat:', e);
+        }
+    }
+
+    function appendChatMessage(msg, currentUser = null) {
+        const chatBox = document.getElementById('chat-messages');
+        if (!chatBox) return;
+        
+        // Remove "no messages" placeholder if it exists
+        const placeholder = chatBox.querySelector('p');
+        if (placeholder) {
+            chatBox.innerHTML = '';
+        }
+        
+        // Use currentUser if provided, otherwise get from session
+        if (!currentUser) {
+            checkAuth().then(user => {
+                if (user) {
+                    addMessageBubble(msg, user.username);
+                }
+            });
+        } else {
+            addMessageBubble(msg, currentUser.username);
+        }
+    }
+
+    function addMessageBubble(msg, currentUsername) {
+        const chatBox = document.getElementById('chat-messages');
+        if (!chatBox) return;
+        
+        const isMine = msg.senderName === currentUsername;
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${isMine ? 'mine' : 'theirs'}`;
+        bubble.innerHTML = `
+            <div style="font-weight: 700; font-size: 0.7rem; margin-bottom: 0.2rem; opacity: 0.9;">${msg.senderName}</div>
+            <div>${msg.message}</div>
+            <div class="chat-meta">${msg.createdAt}</div>
+        `;
+        chatBox.appendChild(bubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text || !activeDealId) return;
+
+        const res = await apiRequest(`/deals/${activeDealId}/messages`, 'POST', { text });
+        if (res && !res.error) {
+            input.value = '';
+            // No need to reload messages - Socket.IO will handle it in real-time
+        } else {
+            alert('Failed to send message');
+        }
+    }
+
+    async function updateDealStatusAndClose(id, status) {
+        await updateDealStatus(id, status);
+        closeModal('dealDetailsModal');
+    }
+
+    async function updateDealStatus(id, status) {
+        if (confirm(`Are you sure you want to change this deal status to ${status}?`)) {
+            const res = await apiRequest(`/deals/${id}`, 'PATCH', { status });
+            if (res && !res.error) {
+                loadDeals();
+            } else if (res && res.error) {
+                alert(res.error);
+            }
         }
     }
 
@@ -257,9 +891,12 @@
                 document.getElementById('cookingTime').value = recipe.cookingTime || '';
                 document.getElementById('difficulty').value = recipe.difficulty || 'Medium';
                 document.getElementById('chapter').value = recipe.chapter || 'Meals';
-                
                 document.getElementById('modal-title').textContent = 'Edit Recipe';
                 openModal('newRecipeModal');
+                // Set for sale checkbox and price
+                document.getElementById('forSale').checked = recipe.forSale || false;
+                document.getElementById('price').value = recipe.price || '';
+                togglePriceField();
             }
         } catch (e) {
             console.error(e);
@@ -281,6 +918,7 @@
     if (recipeForm) {
         recipeForm.onsubmit = async (e) => {
             e.preventDefault();
+            const forSale = document.getElementById('forSale').checked;
             const recipeData = {
                 title: document.getElementById('title').value,
                 description: document.getElementById('description').value,
@@ -289,7 +927,9 @@
                 imageUrl: document.getElementById('imageUrl').value,
                 cookingTime: parseInt(document.getElementById('cookingTime').value) || 0,
                 difficulty: document.getElementById('difficulty').value,
-                chapter: document.getElementById('chapter').value
+                chapter: document.getElementById('chapter').value,
+                forSale: forSale,
+                price: forSale ? parseFloat(document.getElementById('price').value) : null
             };
 
             let res;
@@ -322,8 +962,34 @@
             const editUser = document.getElementById('edit-username');
             if (editUser) editUser.value = user.username;
             
+            // Pre-fill bank details form
+            document.getElementById('bank-name').value = user.bankName || '';
+            document.getElementById('card-number').value = user.cardNumber || '';
+            document.getElementById('card-holder-name').value = user.cardHolderName || '';
+            
             loadRecipes();
         }
+    }
+
+    // Bank Details Form Handler
+    const bankDetailsForm = document.getElementById('bank-details-form');
+    if (bankDetailsForm) {
+        bankDetailsForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                bankName: document.getElementById('bank-name').value,
+                cardNumber: document.getElementById('card-number').value,
+                cardHolderName: document.getElementById('card-holder-name').value
+            };
+            
+            const res = await apiRequest('/me', 'PATCH', data);
+            
+            if (res && !res.error) {
+                alert('Bank details saved successfully!');
+            } else if (res && res.error) {
+                alert(res.error);
+            }
+        };
     }
 
     const editProfileForm = document.getElementById('edit-profile-form');

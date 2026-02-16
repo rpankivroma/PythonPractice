@@ -72,13 +72,140 @@
     </div>
 </div>
 
+<!-- Purchase Modal -->
+<div id="purchaseModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('purchaseModal')">&times;</span>
+        <h2>Purchase Recipe</h2>
+        <div id="purchase-timer" style="text-align: center; color: #ef4444; font-weight: 700; font-size: 1.25rem; margin-top: 1rem; display: none;">
+            Expires in: <span id="timer-display">15:00</span>
+        </div>
+        <div id="purchase-details" style="margin-top: 1.5rem;">
+            <div style="background: var(--muted); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <h3 id="purchase-recipe-title" style="margin-bottom: 0.5rem;"></h3>
+                <div id="purchase-price" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"></div>
+            </div>
+            <h4 style="margin-bottom: 1rem;">Payment Details</h4>
+            <div style="background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+                <div style="margin-bottom: 0.75rem;">
+                    <span style="color: var(--muted-foreground); font-size: 0.85rem;">Author:</span>
+                    <div id="purchase-author" style="font-weight: 600;"></div>
+                </div>
+                <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <span style="color: var(--muted-foreground); font-size: 0.85rem;">Bank Name:</span>
+                        <div id="purchase-bank-name" style="font-weight: 600;"></div>
+                    </div>
+                    <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyToClipboard('purchase-bank-name')">Copy</button>
+                </div>
+                <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Number:</span>
+                        <div id="purchase-card-number" style="font-weight: 600;"></div>
+                    </div>
+                    <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyToClipboard('purchase-card-number')">Copy</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <span style="color: var(--muted-foreground); font-size: 0.85rem;">Card Holder:</span>
+                        <div id="purchase-card-holder" style="font-weight: 600;"></div>
+                    </div>
+                    <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyToClipboard('purchase-card-holder')">Copy</button>
+                </div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--muted-foreground);">Please transfer the amount to the author's bank account to complete your purchase.</p>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button class="btn" style="flex: 1;" onclick="confirmSentMoney()">I sent the money</button>
+                <button class="btn" style="flex: 1; background: var(--secondary); color: var(--foreground);" onclick="cancelDeal()">Cancel deal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('confirmationModal')">&times;</span>
+        <h2>Wait for confirmation!</h2>
+        <p style="margin-top: 1rem; color: var(--muted-foreground);">We've already informed author about your transaction. Please wait confirmation by author. But if your transaction was rejected by bank, cancel deal and try again.</p>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+            <button class="btn" style="flex: 1;" onclick="closeModal('confirmationModal')">Ok</button>
+            <button class="btn" style="flex: 1; background: var(--secondary); color: var(--foreground);" onclick="cancelDeal()">Cancel deal</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Success Modal -->
+<div id="cancelSuccessModal" class="modal">
+    <div class="modal-content small">
+        <span class="close" onclick="closeModal('cancelSuccessModal')">&times;</span>
+        <h2 style="text-align: center;">Your deal was successfully canceled!</h2>
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <button class="btn" style="width: 100%;" onclick="closeModal('cancelSuccessModal')">Ok</button>
+        </div>
+    </div>
+</div>
+
 <script src="static/js/auth.js"></script>
 <script>
+    let currentDealId = null;
+    let timerInterval = null;
+
+    function startTimer(createdAt) {
+        clearInterval(timerInterval);
+        const timerDiv = document.getElementById('purchase-timer');
+        const display = document.getElementById('timer-display');
+        timerDiv.style.display = 'block';
+
+        const createdDate = new Date(createdAt + 'Z'); // Ensure UTC
+        const expiryDate = new Date(createdDate.getTime() + 15 * 60 * 1000);
+
+        function update() {
+            const now = new Date();
+            const diff = expiryDate - now;
+
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                display.textContent = "00:00";
+                cancelDeal();
+                return;
+            }
+
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            display.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        update();
+        timerInterval = setInterval(update, 1000);
+    }
+
     function openModal(id) {
         document.getElementById(id).style.display = "block";
     }
     function closeModal(id) {
         document.getElementById(id).style.display = "none";
+        if (id === 'purchaseModal') {
+            clearInterval(timerInterval);
+            document.getElementById('purchase-timer').style.display = 'none';
+        }
+    }
+
+    async function confirmSentMoney() {
+        if (currentDealId) {
+            await apiRequest(`/deals/${currentDealId}`, 'PATCH', { status: 'payment_sent' });
+        }
+        closeModal('purchaseModal');
+        openModal('confirmationModal');
+    }
+
+    async function cancelDeal() {
+        if (currentDealId) {
+            await apiRequest(`/deals/${currentDealId}`, 'PATCH', { status: 'canceled' });
+        }
+        closeModal('purchaseModal');
+        closeModal('confirmationModal');
+        openModal('cancelSuccessModal');
     }
 
     function togglePassword(id) {
@@ -99,9 +226,19 @@
         if (!id) return;
 
         try {
+            const user = await checkAuth();
             const response = await fetch(`${API_URL}/recipes/${id}`);
             const recipe = await response.json();
             const container = document.getElementById('recipe-container');
+            
+            const isAuthor = user && user.username === recipe.author;
+            const isForSale = recipe.forSale && recipe.price;
+            const isPurchased = recipe.purchased || isAuthor;
+            
+            const priceInfo = (isForSale && !isPurchased) ? `<div style="margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.75rem; background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 8px;"><span style="font-weight: 700; font-size: 1.25rem;">$${recipe.price.toFixed(2)}</span><span>Premium Recipe</span></div>` : '';
+            const stepsBlurStyle = (isForSale && !isPurchased) ? 'filter: blur(8px); user-select: none; pointer-events: none;' : '';
+            const buyButton = (isForSale && !isPurchased) ? `<button class="btn" onclick="buyRecipe(${recipe.id})" style="margin-top: 1rem; padding: 0.75rem 2rem; font-size: 1rem;">Buy This Recipe - $${recipe.price.toFixed(2)}</button>` : '';
+            const purchaseOverlay = (isForSale && !isPurchased) ? `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 2rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 10;"><h3 style="margin-bottom: 1rem;">Premium Recipe</h3><p style="color: var(--muted-foreground); margin-bottom: 1rem;">Purchase this recipe to see the full preparation steps</p><div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">$${recipe.price.toFixed(2)}</div>${buyButton}</div>` : '';
             
             container.innerHTML = `
                 <div class="recipe-header">
@@ -114,9 +251,10 @@
                         <span>•</span>
                         <span>${recipe.difficulty} Difficulty</span>
                     </div>
+                    ${priceInfo}
                 </div>
 
-                <img src="${recipe.imageUrl}" class="recipe-hero-img" alt="${recipe.title}">
+                <img src="${recipe.imageUrl}" class="recipe-hero-img" onerror="this.src='/static/img/NoImageAvalible.png'" alt="${recipe.title}">
 
                 <div class="recipe-content">
                     <div class="ingredients">
@@ -126,16 +264,112 @@
                         </ul>
                     </div>
 
-                    <div class="steps">
+                    <div class="steps" style="position: relative;">
                         <h2 class="section-title">Preparation</h2>
-                        <ol class="steps-list">
-                            ${recipe.steps.map(step => `<li>${step}</li>`).join('')}
-                        </ol>
+                        <div style="${stepsBlurStyle}">
+                            <ol class="steps-list">
+                                ${recipe.steps.map(step => `<li>${step}</li>`).join('')}
+                            </ol>
+                        </div>
+                        ${purchaseOverlay}
                     </div>
                 </div>
             `;
         } catch (error) {
             console.error('Error loading recipe:', error);
+        }
+    }
+
+    function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
+            if (btn) {
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            // Fallback for older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
+                if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+
+    async function buyRecipe(recipeId) {
+        const user = await checkAuth();
+        if (!user) {
+            alert('Please log in to purchase this recipe.');
+            openModal('loginModal');
+            return;
+        }
+
+        try {
+            // Check if user already has a payment_sent deal for this recipe
+            const dealsRes = await apiRequest('/deals', 'GET');
+            if (dealsRes && dealsRes.buy) {
+                const existingDeal = dealsRes.buy.find(d => d.recipeId === recipeId && d.status === 'payment_sent');
+                if (existingDeal) {
+                    currentDealId = existingDeal.id;
+                    openModal('confirmationModal');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error('Error checking existing deals:', e);
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/recipes/${recipeId}/author-bank`);
+            const data = await response.json();
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            document.getElementById('purchase-recipe-title').textContent = data.recipeTitle;
+            document.getElementById('purchase-price').textContent = `$${data.price.toFixed(2)}`;
+            document.getElementById('purchase-author').textContent = data.authorName;
+            document.getElementById('purchase-bank-name').textContent = data.bankName || 'Not provided';
+            document.getElementById('purchase-card-number').textContent = data.cardNumber || 'Not provided';
+            document.getElementById('purchase-card-holder').textContent = data.cardHolderName || 'Not provided';
+            
+            // Create deal
+            const dealResponse = await apiRequest('/deals', 'POST', { recipe_id: recipeId });
+            if (dealResponse && dealResponse.id) {
+                currentDealId = dealResponse.id;
+                // Fetch the deal to get the createdAt from server
+                const dealData = await apiRequest(`/deals/${currentDealId}`, 'GET');
+                if (dealData && dealData.createdAt) {
+                    startTimer(dealData.createdAt);
+                }
+                openModal('purchaseModal');
+            } else {
+                alert('Failed to initiate purchase');
+            }
+        } catch (error) {
+            console.error('Error fetching purchase details:', error);
+            alert('Error loading purchase details. Please try again.');
         }
     }
 

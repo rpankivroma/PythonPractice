@@ -12,14 +12,32 @@ CREATE TABLE IF NOT EXISTS recipes (
   chapter VARCHAR(100),
   image_url TEXT,
   author VARCHAR(100),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  for_sale BOOLEAN DEFAULT FALSE,
+  price DECIMAL(10,2)
 );
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL
+  password VARCHAR(255) NOT NULL,
+  bank_name VARCHAR(255),
+  card_number VARCHAR(255),
+  card_holder_name VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS deals (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipe_id INT NOT NULL,
+  buyer_id INT NOT NULL,
+  author_id INT NOT NULL,
+  price DECIMAL(10,2),
+  status ENUM('created', 'payment_sent', 'completed', 'canceled', 'disputed') DEFAULT 'created',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (recipe_id) REFERENCES recipes(id),
+  FOREIGN KEY (buyer_id) REFERENCES users(id),
+  FOREIGN KEY (author_id) REFERENCES users(id)
 );
 
 INSERT INTO recipes (title, description, ingredients, steps, cooking_time, difficulty, chapter, image_url, author) VALUES
